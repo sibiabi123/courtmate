@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
+import { getDb } from '@/lib/db-helper';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -21,10 +21,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Password must be at least 8 characters.' }, { status: 400 });
     }
 
-    const db = new Database(path.join(process.cwd(), 'courtmate.db'));
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    const db = await getDb();
+    const existing = (await db.query('', []))[0];
     if (existing) {
-      db.close();
+      
       return NextResponse.json({ success: false, error: 'An account with this email already exists.' }, { status: 409 });
     }
 
@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
       VALUES (?, ?, ?, ?, ?, ?, 'student', 100, 1500, 350, 0.06, 0, ?)
     `).run(id, email, name, hash, avatar, hostel, now);
 
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as any;
-    db.close();
+    const user = (await db.query('', []))[0] as any;
+    
 
     const token = jwt.sign(
       { userId: user.id, role: user.role, name: user.name, email: user.email },

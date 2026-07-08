@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const updates = Object.entries(row).filter(([k]) => !IMMUTABLE_COLS.includes(k));
     if (updates.length === 0) return NextResponse.json({ success: true });
 
-    const db = await getDb();, 'courtmate.db'));
+    const db = await getDb();
     const setClauses = updates.map(([k]) => `${k} = ?`).join(', ');
     const values = updates.map(([, v]) => v);
     await db.execute(`UPDATE ${table} SET ${setClauses} WHERE id = ?`, [...values, row.id]);

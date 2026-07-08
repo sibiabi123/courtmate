@@ -6,7 +6,7 @@ const TABLES = ['users', 'posts', 'tournaments', 'matches', 'transactions', 'rep
 
 export async function GET() {
   try {
-    const db = await getDb();, 'courtmate.db'), { readonly: true });
+    const db = await getDb();
     const counts: Record<string, number> = {};
     for (const table of TABLES) {
       try {

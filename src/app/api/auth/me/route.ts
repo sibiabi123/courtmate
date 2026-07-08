@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     if (!token) return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
 
     const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
-    const db = await getDb();, 'courtmate.db'), { readonly: true });
+    const db = await getDb();
     const user = (await db.query('SELECT * FROM users WHERE id = ?', [payload.userId]))[0] as any;
     
 

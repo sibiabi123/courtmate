@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid table' }, { status: 400 });
   }
   try {
-    const db = await getDb();, 'courtmate.db'), { readonly: true });
+    const db = await getDb();
     // SQLite query
     const rows = await db.query(`SELECT * FROM ${table} ORDER BY created_at DESC LIMIT 500`) as Record<string, unknown>[];
     

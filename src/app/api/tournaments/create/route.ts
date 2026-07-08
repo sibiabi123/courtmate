@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const { name, sport, maxParticipants = 16, prize = 0, venue = '', description = '' } = await req.json();
     if (!name || !sport) return NextResponse.json({ success: false, error: 'Name and sport are required' }, { status: 400 });
 
-    const db = await getDb();, 'courtmate.db'));
+    const db = await getDb();
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 

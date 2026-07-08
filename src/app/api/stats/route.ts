@@ -4,7 +4,7 @@ import path from 'path';
 
 export async function GET() {
   try {
-    const db = await getDb();, 'courtmate.db'), { readonly: true });
+    const db = await getDb();
     const userRow = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
     const postRow = db.prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'open'").get() as { count: number };
     const tournamentRow = db.prepare('SELECT COUNT(*) as count FROM tournaments').get() as { count: number };

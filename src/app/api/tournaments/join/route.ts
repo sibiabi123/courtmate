@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const { tournamentId } = await req.json();
     if (!tournamentId) return NextResponse.json({ success: false, error: 'tournamentId required' }, { status: 400 });
 
-    const db = await getDb();, 'courtmate.db'));
+    const db = await getDb();
 
     const tournament = (await db.query('SELECT * FROM tournaments WHERE id = ?', [tournamentId]))[0] as any;
     if (!tournament) {  return NextResponse.json({ success: false, error: 'Tournament not found' }, { status: 404 }); }

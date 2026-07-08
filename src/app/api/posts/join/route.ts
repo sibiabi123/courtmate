@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const { postId } = await req.json();
     if (!postId) return NextResponse.json({ success: false, error: 'postId required' }, { status: 400 });
 
-    const db = await getDb();, 'courtmate.db'));
+    const db = await getDb();
 
     const post = (await db.query('SELECT * FROM posts WHERE id = ?', [postId]))[0] as any;
     if (!post) {  return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 }); }

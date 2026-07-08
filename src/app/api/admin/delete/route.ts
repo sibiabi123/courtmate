@@ -11,7 +11,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
   try {
-    const db = await getDb();, 'courtmate.db'));
+    const db = await getDb();
     await db.execute(`DELETE FROM ${table} WHERE id = ?`, [id]);
     
     return NextResponse.json({ success: true });

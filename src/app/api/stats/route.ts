@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
+import { getDb } from '@/lib/db-helper';
 import path from 'path';
 
 export async function GET() {
   try {
-    const db = new Database(path.join(process.cwd(), 'courtmate.db'), { readonly: true });
+    const db = await getDb();, 'courtmate.db'), { readonly: true });
     const userRow = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
     const postRow = db.prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'open'").get() as { count: number };
     const tournamentRow = db.prepare('SELECT COUNT(*) as count FROM tournaments').get() as { count: number };
-    db.close();
+    
 
     return NextResponse.json({
       totalUsers: userRow?.count || 0,

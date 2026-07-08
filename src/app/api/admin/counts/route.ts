@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
+import { getDb } from '@/lib/db-helper';
 import path from 'path';
 
 const TABLES = ['users', 'posts', 'tournaments', 'matches', 'transactions', 'reports', 'audit_logs'];
 
 export async function GET() {
   try {
-    const db = new Database(path.join(process.cwd(), 'courtmate.db'), { readonly: true });
+    const db = await getDb();, 'courtmate.db'), { readonly: true });
     const counts: Record<string, number> = {};
     for (const table of TABLES) {
       try {
@@ -16,7 +16,7 @@ export async function GET() {
         counts[table] = 0;
       }
     }
-    db.close();
+    
     return NextResponse.json(counts);
   } catch (e) {
     console.error('Admin Counts Error:', e);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
+import { getDb } from '@/lib/db-helper';
 import path from 'path';
 
 const ALLOWED_TABLES = ['users', 'posts', 'tournaments', 'matches', 'transactions', 'reports', 'audit_logs', 'post_participants', 'tournament_participants'];
@@ -10,10 +10,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid table' }, { status: 400 });
   }
   try {
-    const db = new Database(path.join(process.cwd(), 'courtmate.db'), { readonly: true });
+    const db = await getDb();, 'courtmate.db'), { readonly: true });
     // SQLite query
-    const rows = db.prepare(`SELECT * FROM ${table} ORDER BY created_at DESC LIMIT 500`).all() as Record<string, unknown>[];
-    db.close();
+    const rows = await db.query(`SELECT * FROM ${table} ORDER BY created_at DESC LIMIT 500`) as Record<string, unknown>[];
+    
     
     // Remove hash field for security
     const safeRows = rows.map(r => {

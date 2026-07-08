@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
+import { getDb } from '@/lib/db-helper';
 import path from 'path';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -14,9 +14,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Email and password required.' }, { status: 400 });
     }
 
-    const db = new Database(path.join(process.cwd(), 'courtmate.db'), { readonly: true });
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
-    db.close();
+    const db = await getDb();, 'courtmate.db'), { readonly: true });
+    const user = (await db.query('SELECT * FROM users WHERE email = ?', [email]))[0] as any;
+    
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'No account found with this email.' }, { status: 401 });

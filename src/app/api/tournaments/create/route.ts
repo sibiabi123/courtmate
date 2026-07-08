@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
+import { getDb } from '@/lib/db-helper';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const { name, sport, maxParticipants = 16, prize = 0, venue = '', description = '' } = await req.json();
     if (!name || !sport) return NextResponse.json({ success: false, error: 'Name and sport are required' }, { status: 400 });
 
-    const db = new Database(path.join(process.cwd(), 'courtmate.db'));
+    const db = await getDb();, 'courtmate.db'));
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'upcoming', ?)
     `).run(id, name, sport, payload.userId, description, venue, now, prize, maxParticipants, now);
 
-    const tournament = db.prepare('SELECT * FROM tournaments WHERE id = ?').get(id);
-    db.close();
+    const tournament = (await db.query('SELECT * FROM tournaments WHERE id = ?', [id]))[0];
+    
 
     return NextResponse.json({ success: true, tournament });
   } catch (e) {

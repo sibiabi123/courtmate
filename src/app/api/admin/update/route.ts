@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Database from 'better-sqlite3';
+import { getDb } from '@/lib/db-helper';
 import path from 'path';
 
 const ALLOWED_TABLES = ['users', 'posts', 'tournaments', 'matches', 'transactions', 'reports', 'audit_logs'];
@@ -15,11 +15,11 @@ export async function POST(req: NextRequest) {
     const updates = Object.entries(row).filter(([k]) => !IMMUTABLE_COLS.includes(k));
     if (updates.length === 0) return NextResponse.json({ success: true });
 
-    const db = new Database(path.join(process.cwd(), 'courtmate.db'));
+    const db = await getDb();, 'courtmate.db'));
     const setClauses = updates.map(([k]) => `${k} = ?`).join(', ');
     const values = updates.map(([, v]) => v);
-    db.prepare(`UPDATE ${table} SET ${setClauses} WHERE id = ?`).run(...values, row.id);
-    db.close();
+    await db.execute(`UPDATE ${table} SET ${setClauses} WHERE id = ?`, [...values, row.id]);
+    
     
     return NextResponse.json({ success: true });
   } catch (e) {

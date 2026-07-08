@@ -10,12 +10,10 @@ export async function POST(req: NextRequest) {
     const token = req.cookies.get(COOKIE_NAME)?.value;
     if (!token) return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
     const payload = jwt.verify(token, JWT_SECRET) as { userId: string };
-
     const { postId } = await req.json();
     if (!postId) return NextResponse.json({ success: false, error: 'postId required' }, { status: 400 });
 
     const db = await getDb();
-
     const posts = await db.query('SELECT * FROM posts WHERE id = ?', [postId]);
     const post = posts[0] as any;
     if (!post) return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 });
@@ -28,12 +26,25 @@ export async function POST(req: NextRequest) {
     const newCount = post.current_players + 1;
     const newStatus = newCount >= post.max_players ? 'full' : 'open';
 
-    await db.execute('INSERT INTO post_participants (id, post_id, user_id, joined_at) VALUES (?, ?, ?, ?)', [crypto.randomUUID(), postId, payload.userId, new Date().toISOString()]);
+    await db.execute('INSERT INTO post_participants (id, post_id, user_id, joined_at) VALUES (?, ?, ?, ?)',
+      [crypto.randomUUID(), postId, payload.userId, new Date().toISOString()]);
     await db.execute('UPDATE posts SET current_players = ?, status = ? WHERE id = ?', [newCount, newStatus, postId]);
+
+    // Send notification to post creator
+    try {
+      const joinerRows = await db.query('SELECT name FROM users WHERE id = ?', [payload.userId]);
+      const joinerName = (joinerRows[0] as any)?.name || 'Someone';
+      await db.execute(
+        `INSERT INTO notifications (id, user_id, type, title, message, is_read, meta, created_at) VALUES (?, ?, 'join', ?, ?, 0, ?, datetime('now'))`,
+        [crypto.randomUUID(), post.user_id,
+          `🏅 New Player Joined!`,
+          `${joinerName} joined your ${post.sport} match at ${post.ground}`,
+          JSON.stringify({ postId, sport: post.sport })]
+      );
+    } catch { /* don't fail the join if notification fails */ }
 
     return NextResponse.json({ success: true, currentPlayers: newCount, status: newStatus });
   } catch (e) {
-    console.error('Join post error:', e);
     return NextResponse.json({ success: false, error: String(e) }, { status: 500 });
   }
 }

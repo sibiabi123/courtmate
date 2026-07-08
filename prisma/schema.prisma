@@ -1,0 +1,201 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(uuid())
+  name           String
+  email          String   @unique
+  vitId          String   @unique
+  hostel         String
+  avatar         String?
+  bio            String?
+  preferredGames String   // Stored as JSON string
+  skillLevel     String   @default("intermediate")
+  role           String   @default("student")
+  isBanned       Boolean  @default(false)
+  xp             Int      @default(0)
+  level          Int      @default(1)
+  isOnline       Boolean  @default(false)
+  joinedAt       DateTime @default(now())
+  stats          String   // Stored as JSON string of UserStats
+
+  // Relations
+  postsCreated       Post[]
+  postResponses      PostResponse[]
+  tournamentsCreated Tournament[]
+  tournamentRegs     TournamentRegistration[]
+  groupsOwned        Group[]
+  groupMemberships   GroupMember[]
+  reportsFiled       Report[] @relation("Reporter")
+  reportsAgainst     Report[] @relation("Reported")
+  arcadeScores       ArcadeScore[]
+  notifications      Notification[]
+}
+
+model Game {
+  id          String   @id @default(uuid())
+  name        String
+  icon        String
+  category    String
+  description String
+  playerCount String
+  isPhysical  Boolean
+  popularity  Int
+  color       String
+
+  posts       Post[]
+  tournaments Tournament[]
+  groups      Group[]
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  message     String
+  location    String
+  time        String
+  date        String
+  slotsTotal  Int
+  slotsFilled Int      @default(0)
+  isPinned    Boolean  @default(false)
+  status      String   @default("active") // active, filled, expired, cancelled
+  contactMethod String?  // whatsapp, telegram, phone
+  contactInfo   String?  // The actual number or username
+  createdAt   DateTime @default(now())
+
+  responses   PostResponse[]
+}
+
+model PostResponse {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    String   // joined, interested, declined
+  createdAt DateTime @default(now())
+}
+
+model Tournament {
+  id                  String   @id @default(uuid())
+  name                String
+  gameId              String
+  game                Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  createdBy           String
+  organizer           User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  description         String
+  rules               String
+  venue               String
+  dateTime            DateTime
+  endDate             DateTime?
+  prize               String
+  maxParticipants     Int
+  currentParticipants Int      @default(0)
+  format              String   // single_elimination, double_elimination, round_robin
+  status              String   @default("upcoming") // upcoming, ongoing, completed
+  entryFee            String?
+  banner              String?
+  
+  registrations       TournamentRegistration[]
+  matches             TournamentMatch[]
+}
+
+model TournamentRegistration {
+  id           String   @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       String     @default("confirmed") // pending, confirmed, waitlisted
+  registeredAt DateTime   @default(now())
+}
+
+model TournamentMatch {
+  id           String   @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  round        Int
+  matchNumber  Int
+  player1Id    String?
+  player2Id    String?
+  player1Score Int?
+  player2Score Int?
+  winnerId     String?
+  status       String   @default("scheduled") // scheduled, ongoing, completed
+}
+
+model Group {
+  id          String   @id @default(uuid())
+  name        String
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  description String
+  logo        String
+  requirements String?
+  memberCount Int      @default(1)
+  maxMembers  Int
+  isOpen      Boolean  @default(true)
+  tags        String   // JSON string array
+  createdAt   DateTime @default(now())
+
+  members     GroupMember[]
+}
+
+model GroupMember {
+  id       String   @id @default(uuid())
+  groupId  String
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String   @default("member") // admin, member
+  joinedAt DateTime @default(now())
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  reporterId  String
+  reporter    User     @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedId  String
+  reported    User     @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
+  reason      String
+  description String
+  status      String   @default("pending") // pending, resolved, dismissed
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String
+  icon      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model ArcadeScore {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameSlug  String
+  score     Int
+  playedAt  DateTime @default(now())
+}

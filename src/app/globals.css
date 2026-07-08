@@ -1,0 +1,241 @@
+@import 'tailwindcss';
+
+/* ============================================
+   VIT-G-Hub Design System
+   ============================================ */
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+body {
+  background-color: #0a0a0f;
+  color: #ffffff;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050508;
+}
+::-webkit-scrollbar-thumb {
+  background: #25253d;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7b2ff7;
+}
+
+/* ============================================
+   Glassmorphism Utilities
+   ============================================ */
+.glass {
+  background: rgba(17, 17, 24, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.glass-light {
+  background: rgba(26, 26, 46, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.glass-strong {
+  background: rgba(17, 17, 24, 0.92);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================
+   Neon Text Glow Effects
+   ============================================ */
+.neon-text-purple {
+  text-shadow: 0 0 10px rgba(123, 47, 247, 0.8),
+    0 0 40px rgba(123, 47, 247, 0.4),
+    0 0 80px rgba(123, 47, 247, 0.2);
+}
+.neon-text-cyan {
+  text-shadow: 0 0 10px rgba(0, 245, 212, 0.8),
+    0 0 40px rgba(0, 245, 212, 0.4),
+    0 0 80px rgba(0, 245, 212, 0.2);
+}
+.neon-text-pink {
+  text-shadow: 0 0 10px rgba(255, 0, 110, 0.8),
+    0 0 40px rgba(255, 0, 110, 0.4),
+    0 0 80px rgba(255, 0, 110, 0.2);
+}
+.neon-text-gold {
+  text-shadow: 0 0 10px rgba(255, 214, 10, 0.8),
+    0 0 40px rgba(255, 214, 10, 0.4),
+    0 0 80px rgba(255, 214, 10, 0.2);
+}
+
+/* ============================================
+   Neon Border Effects
+   ============================================ */
+.neon-border-purple {
+  box-shadow: 0 0 5px rgba(123, 47, 247, 0.5),
+    inset 0 0 5px rgba(123, 47, 247, 0.1);
+  border-color: rgba(123, 47, 247, 0.5);
+}
+.neon-border-cyan {
+  box-shadow: 0 0 5px rgba(0, 245, 212, 0.5),
+    inset 0 0 5px rgba(0, 245, 212, 0.1);
+  border-color: rgba(0, 245, 212, 0.5);
+}
+.neon-border-pink {
+  box-shadow: 0 0 5px rgba(255, 0, 110, 0.5),
+    inset 0 0 5px rgba(255, 0, 110, 0.1);
+  border-color: rgba(255, 0, 110, 0.5);
+}
+
+/* ============================================
+   Gradient Text
+   ============================================ */
+.gradient-text {
+  background: linear-gradient(135deg, #7b2ff7 0%, #00f5d4 50%, #ff006e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-purple-cyan {
+  background: linear-gradient(90deg, #7b2ff7, #00f5d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-gold {
+  background: linear-gradient(90deg, #ffd60a, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   Interactive Effects
+   ============================================ */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 30px rgba(123, 47, 247, 0.3);
+}
+
+.glow-on-hover {
+  transition: box-shadow 0.3s ease;
+}
+.glow-on-hover:hover {
+  box-shadow: 0 0 20px rgba(0, 245, 212, 0.4);
+}
+
+/* ============================================
+   Animated Gradient Background
+   ============================================ */
+.animated-gradient {
+  background: linear-gradient(-45deg, #7b2ff7, #00f5d4, #ff006e, #ffd60a);
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ============================================
+   Custom Animations
+   ============================================ */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+@keyframes glow-pulse {
+  0% { box-shadow: 0 0 5px rgba(123, 47, 247, 0.5), 0 0 20px rgba(123, 47, 247, 0.2); }
+  100% { box-shadow: 0 0 20px rgba(123, 47, 247, 0.8), 0 0 60px rgba(123, 47, 247, 0.4); }
+}
+@keyframes slide-up {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes scale-in {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulse-neon {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  50% { opacity: 0.8; filter: brightness(1.2); }
+}
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes bounce-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite alternate; }
+.animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
+.animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+.animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
+.animate-shimmer { animation: shimmer 2s linear infinite; }
+.animate-pulse-neon { animation: pulse-neon 2s ease-in-out infinite; }
+.animate-ticker { animation: ticker 30s linear infinite; }
+.animate-bounce-gentle { animation: bounce-gentle 2s ease-in-out infinite; }
+
+/* ============================================
+   Selection & Focus
+   ============================================ */
+::selection {
+  background: rgba(123, 47, 247, 0.4);
+  color: white;
+}
+*:focus-visible {
+  outline: 2px solid #00f5d4;
+  outline-offset: 2px;
+}
+
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #111118 25%, #1a1a2e 50%, #111118 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}

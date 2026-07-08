@@ -1,32 +1,36 @@
 /**
  * Shared database helper for API routes.
- * Uses better-sqlite3 locally, or Turso libSQL in production.
+ * Auto-switches between local better-sqlite3 and Turso libSQL in production.
  */
 
-let _client: any = null;
+let _tursoClient: any = null;
 
-function getDb() {
+export async function getDb() {
   if (process.env.TURSO_DATABASE_URL) {
-    if (!_client) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { createClient } = require('@libsql/client');
-      _client = createClient({
-        url: process.env.TURSO_DATABASE_URL,
+    // ── Production: Turso Cloud ──────────────────────────────────────────────
+    if (!_tursoClient) {
+      const { createClient } = await import('@libsql/client');
+      _tursoClient = createClient({
+        url: process.env.TURSO_DATABASE_URL!,
         authToken: process.env.TURSO_AUTH_TOKEN,
       });
     }
+    const client = _tursoClient;
     return {
-      isTurso: true,
-      client: _client,
-      async execute(sql: string, args: any[] = []) {
-        return _client.execute({ sql, args });
+      /** Returns array of rows */
+      query: async (sql: string, args: any[] = []): Promise<any[]> => {
+        if (!sql || sql.trim() === '') return [];
+        const result = await client.execute({ sql, args });
+        return result.rows as any[];
       },
-      async query(sql: string, args: any[] = []) {
-        const result = await _client.execute({ sql, args });
-        return result.rows;
+      /** Executes a write statement */
+      execute: async (sql: string, args: any[] = []): Promise<void> => {
+        if (!sql || sql.trim() === '') return;
+        await client.execute({ sql, args });
       },
     };
   } else {
+    // ── Local Development: better-sqlite3 ────────────────────────────────────
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Database = require('better-sqlite3');
     const path = require('path');
@@ -34,16 +38,14 @@ function getDb() {
     sqlite.pragma('journal_mode = WAL');
     sqlite.pragma('foreign_keys = ON');
     return {
-      isTurso: false,
-      client: sqlite,
-      execute(sql: string, args: any[] = []) {
-        return sqlite.prepare(sql).run(...args);
-      },
-      query(sql: string, args: any[] = []) {
+      query: async (sql: string, args: any[] = []): Promise<any[]> => {
+        if (!sql || sql.trim() === '') return [];
         return sqlite.prepare(sql).all(...args);
+      },
+      execute: async (sql: string, args: any[] = []): Promise<void> => {
+        if (!sql || sql.trim() === '') return;
+        sqlite.prepare(sql).run(...args);
       },
     };
   }
 }
-
-export { getDb };

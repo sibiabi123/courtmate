@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db-helper';
-import path from 'path';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -22,9 +21,10 @@ export async function POST(req: NextRequest) {
     }
 
     const db = await getDb();
-    const existing = (await db.query('', []))[0];
-    if (existing) {
-      
+
+    // Check if email already exists
+    const existing = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
       return NextResponse.json({ success: false, error: 'An account with this email already exists.' }, { status: 409 });
     }
 
@@ -33,34 +33,26 @@ export async function POST(req: NextRequest) {
     const avatar = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(email)}`;
     const now = new Date().toISOString();
 
-    db.prepare(`
-      INSERT INTO users (id, email, name, hash, avatar, hostel, role, coins, glicko_rating, glicko_rd, glicko_vol, is_banned, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'student', 100, 1500, 350, 0.06, 0, ?)
-    `).run(id, email, name, hash, avatar, hostel, now);
+    await db.execute(
+      `INSERT INTO users (id, email, name, hash, avatar, hostel, role, coins, glicko_rating, glicko_rd, glicko_vol, is_banned, created_at) VALUES (?, ?, ?, ?, ?, ?, 'student', 100, 1500, 350, 0.06, 0, ?)`,
+      [id, email, name, hash, avatar, hostel, now]
+    );
 
-    const user = (await db.query('', []))[0] as any;
-    
+    const userRows = await db.query('SELECT * FROM users WHERE id = ?', [id]);
+    const user = userRows[0] as any;
+    if (!user) throw new Error('Failed to create user');
 
     const token = jwt.sign(
       { userId: user.id, role: user.role, name: user.name, email: user.email },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
-    
-    const { hash: _, ...safeUser } = user;
+
     const mappedUser = {
-      id: safeUser.id,
-      name: safeUser.name,
-      email: safeUser.email,
-      avatar: safeUser.avatar,
-      hostel: safeUser.hostel,
-      coins: safeUser.coins,
-      role: safeUser.role,
-      glickoRating: {
-        rating: safeUser.glicko_rating || 1500,
-        rd: safeUser.glicko_rd || 350,
-        vol: safeUser.glicko_vol || 0.06
-      }
+      id: user.id, name: user.name, email: user.email,
+      avatar: user.avatar, hostel: user.hostel,
+      coins: user.coins, role: user.role,
+      glickoRating: { rating: user.glicko_rating || 1500, rd: user.glicko_rd || 350, vol: user.glicko_vol || 0.06 }
     };
 
     const res = NextResponse.json({ success: true, user: mappedUser });

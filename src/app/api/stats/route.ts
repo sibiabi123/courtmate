@@ -1,19 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db-helper';
-import path from 'path';
 
 export async function GET() {
   try {
     const db = await getDb();
-    const userRow = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
-    const postRow = db.prepare("SELECT COUNT(*) as count FROM posts WHERE status = 'open'").get() as { count: number };
-    const tournamentRow = db.prepare('SELECT COUNT(*) as count FROM tournaments').get() as { count: number };
-    
+    const userRows = await db.query('SELECT COUNT(*) as count FROM users');
+    const postRows = await db.query("SELECT COUNT(*) as count FROM posts WHERE status = 'open'");
+    const tournamentRows = await db.query('SELECT COUNT(*) as count FROM tournaments');
 
     return NextResponse.json({
-      totalUsers: userRow?.count || 0,
-      activeMatches: postRow?.count || 0,
-      totalTournaments: tournamentRow?.count || 0,
+      totalUsers: Number((userRows[0] as any)?.count) || 0,
+      activeMatches: Number((postRows[0] as any)?.count) || 0,
+      totalTournaments: Number((tournamentRows[0] as any)?.count) || 0,
     });
   } catch (e) {
     console.error('Stats API error:', e);

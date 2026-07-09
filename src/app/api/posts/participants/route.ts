@@ -7,7 +7,9 @@ export async function GET(req: NextRequest) {
     if (!postId) return NextResponse.json({ participants: [] });
     const db = await getDb();
     const rows = await db.query(
-      `SELECT pp.user_id, pp.joined_at, u.name, u.avatar, u.hostel, u.glicko_rating, u.coins
+      `SELECT pp.user_id, pp.joined_at,
+              u.name, u.avatar, u.hostel, u.glicko_rating, u.coins,
+              u.phone, u.whatsapp, u.telegram, u.instagram, u.bio
        FROM post_participants pp
        LEFT JOIN users u ON pp.user_id = u.id
        WHERE pp.post_id = ?
@@ -19,6 +21,13 @@ export async function GET(req: NextRequest) {
       hostel: r.hostel, coins: Number(r.coins) || 0,
       glickoRating: Number(r.glicko_rating) || 1500,
       joinedAt: r.joined_at,
+      bio: r.bio,
+      contact: {
+        phone: r.phone,
+        whatsapp: r.whatsapp,
+        telegram: r.telegram,
+        instagram: r.instagram,
+      },
     }));
     return NextResponse.json({ success: true, participants });
   } catch (e) {

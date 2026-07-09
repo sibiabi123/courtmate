@@ -91,20 +91,52 @@ function ParticipantsModal({ post, onClose }: { post: any; onClose: () => void }
             const tier = getTier(p.glickoRating || 1500);
             const isMe = p.id === currentUser?.id;
             const isCreator = p.id === post.userId;
+            const hasContact = p.contact?.phone || p.contact?.whatsapp || p.contact?.telegram || p.contact?.instagram;
             return (
-              <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: isMe ? 'rgba(0,245,212,0.06)' : 'rgba(255,255,255,0.02)', border: `1px solid ${isMe ? 'rgba(0,245,212,0.15)' : 'rgba(255,255,255,0.06)'}` }}>
-                <span className="text-[#6b6b80] font-bold text-sm w-5 text-center">#{i + 1}</span>
-                <Avatar user={p} size="sm" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-bold text-white text-sm">{p.name}</span>
-                    {isMe && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#00f5d4]/15 text-[#00f5d4] font-bold">You</span>}
-                    {isCreator && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#7b2ff7]/15 text-[#7b2ff7] font-bold">Creator</span>}
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: `${tier.color}15`, color: tier.color }}>{tier.label}</span>
+              <div key={p.id} className="rounded-xl overflow-hidden" style={{ background: isMe ? 'rgba(0,245,212,0.04)' : 'rgba(255,255,255,0.02)', border: `1px solid ${isMe ? 'rgba(0,245,212,0.15)' : 'rgba(255,255,255,0.06)'}` }}>
+                <div className="flex items-center gap-3 p-3">
+                  <span className="text-[#6b6b80] font-bold text-sm w-5 text-center">#{i + 1}</span>
+                  <Avatar user={p} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-white text-sm">{p.name}</span>
+                      {isMe && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#00f5d4]/15 text-[#00f5d4] font-bold">You</span>}
+                      {isCreator && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#7b2ff7]/15 text-[#7b2ff7] font-bold">Creator</span>}
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: `${tier.color}15`, color: tier.color }}>{tier.label}</span>
+                    </div>
+                    <p className="text-[11px] text-[#6b6b80]">{p.hostel} · ELO {Math.round(p.glickoRating || 1500)}</p>
+                    {p.bio && <p className="text-[11px] text-[#a0a0b8] mt-0.5 italic">"{p.bio}"</p>}
                   </div>
-                  <p className="text-[11px] text-[#6b6b80]">{p.hostel} · ELO {Math.round(p.glickoRating || 1500)}</p>
+                  <div className="text-[11px] text-[#6b6b80]">{new Date(p.joinedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
-                <div className="text-[11px] text-[#6b6b80]">{new Date(p.joinedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                {/* Contact buttons */}
+                {!isMe && hasContact && (
+                  <div className="flex gap-1.5 px-3 pb-3">
+                    {p.contact?.whatsapp && (
+                      <a href={`https://wa.me/${p.contact.whatsapp.replace(/[^0-9]/g,'')}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg text-white transition-all hover:scale-105"
+                        style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}>📲 WhatsApp</a>
+                    )}
+                    {p.contact?.phone && (
+                      <a href={`tel:${p.contact.phone}`}
+                        className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg text-white transition-all hover:scale-105"
+                        style={{ background: 'rgba(59,130,246,0.8)' }}>📞 Call</a>
+                    )}
+                    {p.contact?.telegram && (
+                      <a href={`https://t.me/${p.contact.telegram.replace('@','')}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg text-white transition-all hover:scale-105"
+                        style={{ background: 'rgba(0,136,204,0.8)' }}>✈️ Telegram</a>
+                    )}
+                    {p.contact?.instagram && (
+                      <a href={`https://instagram.com/${p.contact.instagram.replace('@','')}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg text-white transition-all hover:scale-105"
+                        style={{ background: 'linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)' }}>📷 Instagram</a>
+                    )}
+                  </div>
+                )}
+                {!isMe && !hasContact && (
+                  <p className="text-[10px] text-[#4b4b5a] px-3 pb-2 italic">No contact info shared</p>
+                )}
               </div>
             );
           })}

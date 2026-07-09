@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore } from '@/store/uiStore';
-import { Home, Rss, Trophy, BarChart3, User, LogOut, LogIn, Menu, X, Gamepad2, Shield, Swords } from 'lucide-react';
+import { Home, Rss, Trophy, BarChart3, User, LogOut, LogIn, Menu, X, Gamepad2, Shield, Swords, Bell, Settings } from 'lucide-react';
+
 
 
 const NAV_LINKS = [
@@ -21,11 +22,14 @@ const NAV_LINKS = [
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, isAuthenticated, logout } = useUIStore();
+  const { currentUser, isAuthenticated, logout, setCurrentUser } = useUIStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [onlineCount, setOnlineCount] = useState<number>(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -37,9 +41,42 @@ export function Navbar() {
     fetch('/api/stats').then(r => r.json()).then(d => setOnlineCount(d.totalUsers || 0)).catch(() => {});
     const interval = setInterval(() => {
       fetch('/api/stats').then(r => r.json()).then(d => setOnlineCount(d.totalUsers || 0)).catch(() => {});
-    }, 30000);
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Sync fresh user data (coins, etc.) from server on mount
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetch('/api/auth/me')
+      .then(r => r.json())
+      .then(d => { if (d.success && d.user) setCurrentUser(d.user); })
+      .catch(() => {});
+  }, [isAuthenticated]);
+
+  // Fetch notifications for logged-in user
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchNotifs = () => {
+      fetch('/api/notifications')
+        .then(r => r.json())
+        .then(d => {
+          const notifs = Array.isArray(d.notifications) ? d.notifications : [];
+          setNotifications(notifs.slice(0, 6));
+          setUnreadCount(notifs.filter((n: any) => !n.is_read).length);
+        })
+        .catch(() => {});
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  const markAllRead = async () => {
+    await fetch('/api/notifications', { method: 'PATCH' });
+    setUnreadCount(0);
+    setNotifications(n => n.map(x => ({ ...x, is_read: 1 })));
+  };
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -47,6 +84,7 @@ export function Navbar() {
     router.push('/');
     setProfileOpen(false);
   };
+
 
   const initials = currentUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'GU';
 
@@ -99,13 +137,48 @@ export function Navbar() {
 
             {isAuthenticated && currentUser ? (
               <>
-                {/* Coins */}
+                {/* Coins - live from server sync */}
                 <div className="hidden sm:flex items-center gap-1 text-xs font-bold text-[#ffd60a] border border-[#ffd60a]/20 bg-[#ffd60a]/10 rounded-full px-3 py-1">
-                  🪙 {currentUser.coins}
+                  🪙 {Number(currentUser.coins) || 0}
                 </div>
 
-                {/* Profile */}
+                {/* Notification Bell */}
                 <div className="relative">
+                  <button onClick={() => { setBellOpen(!bellOpen); setProfileOpen(false); if (unreadCount > 0) markAllRead(); }}
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-[#a0a0b8] hover:text-white hover:bg-white/8 transition-all relative"
+                    style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <Bell className="w-4 h-4" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+                  <AnimatePresence>
+                    {bellOpen && (
+                      <motion.div initial={{ opacity: 0, scale: 0.95, y: -10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+                        className="absolute right-0 top-12 w-80 rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden"
+                        style={{ background: 'rgba(17,17,24,0.98)', backdropFilter: 'blur(20px)' }}>
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
+                          <span className="font-bold text-white text-sm font-outfit">Notifications</span>
+                          {unreadCount > 0 && <button onClick={markAllRead} className="text-[10px] text-[#00f5d4] hover:underline">Mark all read</button>}
+                        </div>
+                        <div className="max-h-72 overflow-y-auto">
+                          {notifications.length === 0 ? (
+                            <div className="text-center py-8 text-[#6b6b80] text-sm font-body">No notifications yet</div>
+                          ) : notifications.map((n: any) => (
+                            <div key={n.id} className="px-4 py-3 border-b border-white/5 hover:bg-white/3 transition-all" style={{ background: n.is_read ? 'transparent' : 'rgba(123,47,247,0.05)' }}>
+                              <p className="text-sm font-semibold text-white">{n.title}</p>
+                              <p className="text-xs text-[#6b6b80] mt-0.5 font-body">{n.message}</p>
+                              <p className="text-[10px] text-[#4b4b5a] mt-1">{new Date(n.created_at).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
                   <button
                     onClick={() => setProfileOpen(!profileOpen)}
                     className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white transition-all hover:scale-105"
@@ -130,19 +203,22 @@ export function Navbar() {
                           <p className="text-[#6b6b80] text-xs mt-0.5 truncate">{currentUser.email}</p>
                           <p className="text-[#a0a0b8] text-xs mt-1">{currentUser.hostel}</p>
                         </div>
-                        <div className="py-1">
-                          <Link href={`/profile/${currentUser.id}`} onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#a0a0b8] hover:text-white hover:bg-white/5 transition-all">
-                            <User className="w-4 h-4" /> My Profile
-                          </Link>
-                          {(currentUser.role === 'admin' || currentUser.role === 'super_admin') && (
-                            <Link href="/admin" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#ffd60a] hover:bg-white/5 transition-all">
-                              <Shield className="w-4 h-4" /> Admin Panel
+                          <div className="py-1">
+                            <Link href={`/profile/${currentUser.id}`} onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#a0a0b8] hover:text-white hover:bg-white/5 transition-all">
+                              <User className="w-4 h-4" /> My Profile
                             </Link>
-                          )}
-                          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-all">
-                            <LogOut className="w-4 h-4" /> Sign Out
-                          </button>
-                        </div>
+                            <Link href="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#a0a0b8] hover:text-white hover:bg-white/5 transition-all">
+                              <Settings className="w-4 h-4" /> Profile Settings
+                            </Link>
+                            {(currentUser.role === 'admin' || currentUser.role === 'super_admin') && (
+                              <Link href="/admin" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#ffd60a] hover:bg-white/5 transition-all">
+                                <Shield className="w-4 h-4" /> Admin Panel
+                              </Link>
+                            )}
+                            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-all">
+                              <LogOut className="w-4 h-4" /> Sign Out
+                            </button>
+                          </div>
                       </motion.div>
                     )}
                   </AnimatePresence>

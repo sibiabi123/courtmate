@@ -10,11 +10,13 @@ const GROUNDS = ['Main Ground (Football/Cricket)', 'MH Cricket Net', 'Basketball
 const SPORT_EMOJIS: Record<string, string> = { Cricket: '🏏', Football: '⚽', Badminton: '🏸', Basketball: '🏀', 'Table Tennis': '🏓', Volleyball: '🏐', Kabaddi: '🤼', Tennis: '🎾', Chess: '♟️', default: '🏅' };
 
 function getTier(rating: number) {
-  if (rating >= 2000) return { label: 'Champion', color: '#ffd60a' };
-  if (rating >= 1800) return { label: 'Diamond', color: '#00f5d4' };
-  if (rating >= 1600) return { label: 'Platinum', color: '#a855f7' };
-  if (rating >= 1400) return { label: 'Gold', color: '#f59e0b' };
-  return { label: 'Rookie', color: '#6b6b80' };
+  if (rating >= 2000) return { label: 'Champion', emoji: '👑', color: '#ffd60a', bg: 'rgba(255,214,10,0.12)' };
+  if (rating >= 1800) return { label: 'Diamond', emoji: '💎', color: '#00f5d4', bg: 'rgba(0,245,212,0.12)' };
+  if (rating >= 1600) return { label: 'Platinum', emoji: '⚡', color: '#a855f7', bg: 'rgba(168,85,247,0.12)' };
+  if (rating >= 1400) return { label: 'Gold', emoji: '🥇', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' };
+  if (rating >= 1200) return { label: 'Silver', emoji: '🥈', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' };
+  if (rating >= 1000) return { label: 'Bronze', emoji: '🥉', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)' };
+  return { label: 'Rookie', emoji: '🌱', color: '#6b6b80', bg: 'rgba(107,107,128,0.12)' };
 }
 
 function Avatar({ user, size = 'md' }: { user: any; size?: 'sm' | 'md' }) {
@@ -102,7 +104,7 @@ function ParticipantsModal({ post, onClose }: { post: any; onClose: () => void }
                       <span className="font-bold text-white text-sm">{p.name}</span>
                       {isMe && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#00f5d4]/15 text-[#00f5d4] font-bold">You</span>}
                       {isCreator && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#7b2ff7]/15 text-[#7b2ff7] font-bold">Creator</span>}
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: `${tier.color}15`, color: tier.color }}>{tier.label}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: tier.bg, color: tier.color }}>{tier.emoji} {tier.label}</span>
                     </div>
                     <p className="text-[11px] text-[#6b6b80]">{p.hostel} · ELO {Math.round(p.glickoRating || 1500)}</p>
                     {p.bio && <p className="text-[11px] text-[#a0a0b8] mt-0.5 italic">"{p.bio}"</p>}
@@ -308,7 +310,7 @@ function PostCard({ post, onJoined, onViewPlayers }: { post: any; onJoined: () =
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-bold text-white text-sm font-outfit">{post.user?.name || 'Unknown'}</span>
             {isOwner && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#7b2ff7]/15 text-[#7b2ff7] font-bold">Your Post</span>}
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: `${tier.color}15`, color: tier.color }}>{tier.label}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: tier.bg, color: tier.color }}>{tier.emoji} {tier.label}</span>
           </div>
           <p className="text-[11px] text-[#6b6b80] font-body">{post.user?.hostel}</p>
         </div>

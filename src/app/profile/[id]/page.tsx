@@ -18,10 +18,12 @@ const SPORT_EMOJIS: Record<string, string> = {
 
 function getTier(rating: number) {
   if (rating >= 2000) return { label: 'Champion', color: '#ffd60a', emoji: '👑', min: 2000, max: 2400 };
-  if (rating >= 1700) return { label: 'Diamond', color: '#00f5d4', emoji: '💎', min: 1700, max: 2000 };
-  if (rating >= 1500) return { label: 'Platinum', color: '#7b2ff7', emoji: '⚡', min: 1500, max: 1700 };
-  if (rating >= 1300) return { label: 'Gold', color: '#f59e0b', emoji: '🥇', min: 1300, max: 1500 };
-  return { label: 'Rookie', color: '#6b6b80', emoji: '🌱', min: 0, max: 1300 };
+  if (rating >= 1800) return { label: 'Diamond', color: '#00f5d4', emoji: '💎', min: 1800, max: 2000 };
+  if (rating >= 1600) return { label: 'Platinum', color: '#7b2ff7', emoji: '⚡', min: 1600, max: 1800 };
+  if (rating >= 1400) return { label: 'Gold', color: '#f59e0b', emoji: '🥇', min: 1400, max: 1600 };
+  if (rating >= 1200) return { label: 'Silver', color: '#94a3b8', emoji: '🥈', min: 1200, max: 1400 };
+  if (rating >= 1000) return { label: 'Bronze', color: '#cd7f32', emoji: '🥉', min: 1000, max: 1200 };
+  return { label: 'Rookie', color: '#6b6b80', emoji: '🌱', min: 0, max: 1000 };
 }
 
 export default function ProfilePage({ params }: { params: Promise<{ id: string }> }) {

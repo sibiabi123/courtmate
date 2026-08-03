@@ -13,6 +13,7 @@ function getTier(rating: number) {
   if (rating >= 1600) return { label: 'Platinum', emoji: '⚡', color: '#a855f7', bg: 'rgba(168,85,247,0.12)' };
   if (rating >= 1400) return { label: 'Gold', emoji: '🥇', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' };
   if (rating >= 1200) return { label: 'Silver', emoji: '🥈', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' };
+  if (rating >= 1000) return { label: 'Bronze', emoji: '🥉', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)' };
   return { label: 'Rookie', emoji: '🌱', color: '#6b6b80', bg: 'rgba(107,107,128,0.12)' };
 }
 
@@ -44,6 +45,13 @@ export default function LeaderboardPage() {
       .catch(() => setUsers([]))
       .finally(() => setLoading(false));
   }, [hostel]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch('/api/leaderboard').then(r => r.json()).then(d => setUsers(Array.isArray(d.users) ? d.users : []));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const top3 = users.slice(0, 3);
   const rest = users.slice(3);

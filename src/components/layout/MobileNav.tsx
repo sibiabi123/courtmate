@@ -7,11 +7,12 @@ import { Home, Swords, Gamepad2, Trophy, User } from 'lucide-react';
 
 const tabs = [
   { href: '/', label: 'Home', icon: Home },
-  { href: '/feed', label: 'Feed', icon: Swords },
+  { href: '/challenges', label: 'Challenges', icon: Swords },
   { href: '/arcade', label: 'Arcade', icon: Gamepad2, center: true },
   { href: '/tournaments', label: 'Tourneys', icon: Trophy },
-  { href: '/profile/u1', label: 'Profile', icon: User },
+  { href: '/leaderboard', label: 'Rankings', icon: User },
 ];
+
 
 export function MobileNav() {
   const pathname = usePathname();

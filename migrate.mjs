@@ -110,7 +110,7 @@ async function migrate() {
     try {
       await client.execute(sql);
       console.log('OK:', sql.substring(0, 60).trim() + '...');
-    } catch (e: any) {
+    } catch (e) {
       if (e.message?.includes('duplicate column') || e.message?.includes('already exists')) {
         console.log('SKIP (already exists):', sql.substring(0, 60).trim() + '...');
       } else {

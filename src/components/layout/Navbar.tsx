@@ -10,11 +10,12 @@ import { Home, Rss, Trophy, BarChart3, User, LogOut, LogIn, Menu, X, Gamepad2, S
 const NAV_LINKS = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/feed', label: 'Feed', icon: Rss },
-  { href: '/matchmaking', label: 'Matchmaking', icon: Swords },
+  { href: '/challenges', label: 'Challenges', icon: Swords },
   { href: '/tournaments', label: 'Tournaments', icon: Trophy },
   { href: '/leaderboard', label: 'Rankings', icon: BarChart3 },
   { href: '/arcade', label: 'Arcade', icon: Gamepad2 },
 ];
+
 
 export function Navbar() {
   const pathname = usePathname();

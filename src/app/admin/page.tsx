@@ -6,17 +6,20 @@ import { Shield, Database, Users, FileText, Trophy, CreditCard, Flag, BookOpen, 
 
 const ADMIN_PASSWORD = 'Admin@123';
 
-type TableName = 'users' | 'posts' | 'tournaments' | 'matches' | 'transactions' | 'reports' | 'audit_logs';
+type TableName = 'users' | 'posts' | 'challenges' | 'tournaments' | 'matches' | 'transactions' | 'reports' | 'notifications' | 'audit_logs';
 
 const TABLES: { key: TableName; label: string; icon: React.ComponentType<{className?: string}> }[] = [
   { key: 'users', label: 'Users', icon: Users },
   { key: 'posts', label: 'Match Posts', icon: FileText },
+  { key: 'challenges', label: 'Challenges', icon: Shield },
   { key: 'tournaments', label: 'Tournaments', icon: Trophy },
   { key: 'matches', label: 'Matches', icon: Database },
   { key: 'transactions', label: 'Transactions', icon: CreditCard },
   { key: 'reports', label: 'Reports', icon: Flag },
+  { key: 'notifications', label: 'Notifications', icon: FileText },
   { key: 'audit_logs', label: 'Audit Logs', icon: BookOpen },
 ];
+
 
 function downloadCSV(data: Record<string, unknown>[], filename: string) {
   if (!data.length) return;

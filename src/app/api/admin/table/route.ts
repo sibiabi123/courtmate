@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db-helper';
 import path from 'path';
 
-const ALLOWED_TABLES = ['users', 'posts', 'tournaments', 'matches', 'transactions', 'reports', 'audit_logs', 'post_participants', 'tournament_participants'];
+const ALLOWED_TABLES = ['users', 'posts', 'challenges', 'tournaments', 'matches', 'transactions', 'reports', 'notifications', 'elo_history', 'match_results', 'audit_logs', 'post_participants', 'tournament_participants'];
 
 export async function GET(req: NextRequest) {
   const table = req.nextUrl.searchParams.get('table');

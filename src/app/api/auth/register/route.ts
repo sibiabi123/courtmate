@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
     if (!name || !email || !password) {
       return NextResponse.json({ success: false, error: 'All fields are required.' }, { status: 400 });
     }
-    if (!email.endsWith('@vitstudent.ac.in') && !email.endsWith('@vit.ac.in')) {
-      return NextResponse.json({ success: false, error: 'Must use a VIT email address.' }, { status: 400 });
+    if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
+      return NextResponse.json({ success: false, error: 'Please enter a valid email address.' }, { status: 400 });
     }
     if (password.length < 8) {
       return NextResponse.json({ success: false, error: 'Password must be at least 8 characters.' }, { status: 400 });

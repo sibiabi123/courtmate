@@ -40,12 +40,12 @@ export default function RegisterPage() {
   const [agreed, setAgreed] = useState(false);
 
   const pwdStrength = getPasswordStrength(form.password);
-  const emailValid = form.email.endsWith('@vitstudent.ac.in') || form.email.endsWith('@vit.ac.in');
+  const emailValid = /^[^@]+@[^@]+\.[^@]+$/.test(form.email);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!emailValid) { setError('Please use your VIT email (@vitstudent.ac.in or @vit.ac.in).'); return; }
+    if (!emailValid) { setError('Please enter a valid email address.'); return; }
     if (form.password !== form.confirm) { setError('Passwords do not match.'); return; }
     if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
     if (!agreed) { setError('Please accept the terms to continue.'); return; }
@@ -115,15 +115,15 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#a0a0b8] mb-2 font-outfit uppercase tracking-wider text-xs">VIT Email</label>
+              <label className="block text-sm font-medium text-[#a0a0b8] mb-2 font-outfit uppercase tracking-wider text-xs">Email</label>
               <div className="relative">
-                <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="yourname@vitstudent.ac.in" required
+                <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" required
                   className={`w-full bg-white/5 border rounded-xl px-4 py-3 pr-10 text-white placeholder-[#4a4a5a] focus:outline-none transition-all ${
                     form.email && !emailValid ? 'border-red-500/50' : form.email && emailValid ? 'border-emerald-500/50' : 'border-white/10 focus:border-[#7b2ff7]'
                   }`} />
                 {form.email && emailValid && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />}
               </div>
-              {form.email && !emailValid && <p className="text-xs text-red-400 mt-1 font-body">Must be a @vitstudent.ac.in or @vit.ac.in email</p>}
+              {form.email && !emailValid && <p className="text-xs text-red-400 mt-1 font-body">Please enter a valid email address</p>}
             </div>
 
             <div>

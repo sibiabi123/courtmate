@@ -10,8 +10,8 @@ export const authRouter = router({
     .input(z.object({
       name: z.string().min(2).max(64),
       email: z.string().email().refine(
-        (e) => e.endsWith('@vitstudent.ac.in') || e.endsWith('@vit.ac.in'),
-        { message: 'Must be a VIT email (@vitstudent.ac.in or @vit.ac.in)' }
+        (e) => /^[^@]+@[^@]+\.[^@]+$/.test(e),
+        { message: 'Please enter a valid email address' }
       ),
       password: z.string().min(8, 'Password must be at least 8 characters'),
       hostel: z.string().default('Day Scholar'),

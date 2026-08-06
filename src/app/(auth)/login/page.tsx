@@ -126,7 +126,7 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-6 p-4 rounded-xl border border-white/5 text-center" style={{ background: 'rgba(255,255,255,0.02)' }}>
-            <p className="text-xs text-[#6b6b80] font-body">Use your registered VIT email and password to sign in.</p>
+            <p className="text-xs text-[#6b6b80] font-body">Use your registered email and password to sign in.</p>
             <p className="text-xs text-[#4a4a5a] mt-1 font-body">New to CourtMate? <Link href="/register" className="text-[#00f5d4] hover:underline">Create a free account</Link></p>
           </div>
         </motion.div>

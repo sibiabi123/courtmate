@@ -17,7 +17,7 @@ const SPORTS = [
 ];
 
 const STEPS = [
-  { step: '01', title: 'Register', desc: 'Sign up with your VIT email. Takes 30 seconds.', icon: Shield },
+  { step: '01', title: 'Register', desc: 'Create your free account in 30 seconds with any email.', icon: Shield },
   { step: '02', title: 'Post or Join a Match', desc: 'Find active matches or create your own at any campus ground.', icon: Target },
   { step: '03', title: 'Play & Earn ELO', desc: 'Your Glicko-2 rating updates after every match. Rise through the ranks.', icon: Star },
 ];

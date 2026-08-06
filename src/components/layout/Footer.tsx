@@ -3,9 +3,9 @@ import { Zap } from 'lucide-react';
 
 const quickLinks = [
   { href: '/feed', label: 'Feed' },
+  { href: '/challenges', label: 'Challenges' },
   { href: '/arcade', label: 'Arcade' },
   { href: '/tournaments', label: 'Tournaments' },
-  { href: '/groups', label: 'Groups' },
   { href: '/leaderboard', label: 'Leaderboard' },
 ];
 
@@ -79,7 +79,7 @@ export function Footer() {
         {/* Copyright */}
         <div className="mt-10 pt-6 border-t border-white/5 text-center">
           <p className="text-xs text-[#6b6b80]">
-            © 2026 CourtMate. Built for VIT students.
+            © 2026 CourtMate. Campus sports matchmaking platform.
           </p>
         </div>
       </div>

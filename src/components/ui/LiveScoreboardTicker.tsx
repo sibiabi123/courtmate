@@ -69,11 +69,43 @@ export function LiveScoreboardTicker() {
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveMatchIndex(prev => (prev + 1) % INITIAL_MATCHES.length);
-    }, 8000);
-    return () => clearInterval(interval);
+    fetch('/api/posts')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && Array.isArray(d.posts) && d.posts.length > 0) {
+          const dynamicMatches: LiveMatch[] = d.posts.slice(0, 5).map((p: any, idx: number) => {
+            const icons: Record<string, string> = { Badminton: '🏸', Football: '⚽', Cricket: '🏏', Basketball: '🏀', 'Table Tennis': '🏓', Tennis: '🎾', Volleyball: '🏐', Chess: '♟️' };
+            const teamA = p.user?.name || 'Home Squad';
+            const teamB = idx % 2 === 0 ? 'Challengers' : 'Away Squad';
+            const scoreA = 18 + (idx * 2) % 6;
+            const scoreB = 17 + (idx * 3) % 6;
+            return {
+              id: p.id,
+              sport: p.sport,
+              icon: icons[p.sport] || '🏅',
+              venue: p.ground,
+              teamA,
+              scoreA,
+              teamB,
+              scoreB,
+              status: `${p.currentPlayers}/${p.maxPlayers} Players • In Progress 🔥`,
+              commentary: `${p.sport} session at ${p.ground}. Organized by ${teamA}!`,
+              cheers: 24 + idx * 8,
+            };
+          });
+          setMatches(dynamicMatches);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (matches.length === 0) return;
+    const interval = setInterval(() => {
+      setActiveMatchIndex(prev => (prev + 1) % matches.length);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, [matches.length]);
 
   const handleCheer = (matchId: string) => {
     sound.playCoin();

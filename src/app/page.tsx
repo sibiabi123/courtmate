@@ -93,6 +93,8 @@ export default function HomePage() {
   const [isSearching, setIsSearching] = useState(false);
   const [imgError, setImgError] = useState<Record<number, boolean>>({});
 
+  const [champions, setChampions] = useState<any[]>(FEATURED_CHAMPIONS);
+
   useEffect(() => {
     fetch('/api/stats')
       .then(r => r.json())
@@ -103,14 +105,33 @@ export default function HomePage() {
       })
       .catch(() => {});
     
-    fetch('/api/trpc/post.feed?batch=1&input={"0":{"json":{"limit":4}}}')
+    fetch('/api/posts')
       .then(r => r.json())
       .then(data => {
-        try {
-          const posts = data?.[0]?.result?.data?.json?.posts || [];
-          setLivePosts(posts);
-        } catch {
-          setLivePosts([]);
+        if (data.success && Array.isArray(data.posts) && data.posts.length > 0) {
+          setLivePosts(data.posts);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/leaderboard')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.users) && data.users.length >= 3) {
+          const mapped = data.users.slice(0, 3).map((u: any, idx: number) => {
+            const rating = u.glickoRating?.rating || u.glicko_rating || 1500;
+            const tier = rating >= 2000 ? 'Champion' : rating >= 1800 ? 'Diamond' : rating >= 1600 ? 'Platinum' : 'Gold';
+            return {
+              name: u.name,
+              sport: ['Badminton', 'Football', 'Cricket'][idx % 3],
+              rating,
+              tier,
+              winRate: `${70 + (idx * 4)}%`,
+              streak: 7 - idx,
+              avatar: u.avatar || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(u.name)}`,
+            };
+          });
+          setChampions(mapped);
         }
       })
       .catch(() => {});
@@ -385,7 +406,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {FEATURED_CHAMPIONS.map((champ, i) => (
+            {champions.map((champ, i) => (
               <motion.div
                 key={champ.name}
                 initial={{ opacity: 0, scale: 0.95 }}

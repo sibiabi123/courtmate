@@ -17,15 +17,20 @@ function getUser(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const db = await getDb();
-    const status = req.nextUrl.searchParams.get('status') || 'open';
+    const status = req.nextUrl.searchParams.get('status');
     const sport = req.nextUrl.searchParams.get('sport');
     const userId = req.nextUrl.searchParams.get('userId');
 
     let sql = `
       SELECT c.*,
+        c.ranking_points_stake as stake_points,
+        c.scheduled_at as match_time,
+        c.challenged_id as opponent_id,
         u1.name as challenger_name, u1.avatar as challenger_avatar,
         u1.hostel as challenger_hostel, u1.glicko_rating as challenger_rating,
-        u2.name as challenged_name, u2.avatar as challenged_avatar
+        u2.name as opponent_name, u2.name as challenged_name,
+        u2.avatar as opponent_avatar, u2.avatar as challenged_avatar,
+        u2.glicko_rating as opponent_rating
       FROM challenges c
       LEFT JOIN users u1 ON c.challenger_id = u1.id
       LEFT JOIN users u2 ON c.challenged_id = u2.id
@@ -33,11 +38,11 @@ export async function GET(req: NextRequest) {
     `;
     const args: any[] = [];
 
-    if (status !== 'all') {
+    if (status && status !== 'all') {
       sql += ' AND c.status = ?';
       args.push(status);
     }
-    if (sport) {
+    if (sport && sport !== 'All') {
       sql += ' AND c.sport = ?';
       args.push(sport);
     }
@@ -61,20 +66,33 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { sport, ground, scheduledAt, description = '', mode = 'casual', challengedId = null, rankingPointsStake = 0 } = body;
+    const {
+      sport,
+      ground,
+      scheduledAt,
+      match_time,
+      description = '',
+      mode = 'casual',
+      challengedId = null,
+      rankingPointsStake = 0,
+      stake_points = 0
+    } = body;
 
-    if (!sport || !ground || !scheduledAt) {
-      return NextResponse.json({ success: false, error: 'sport, ground, and scheduledAt are required' }, { status: 400 });
+    const finalMatchTime = match_time || scheduledAt || new Date().toISOString();
+    const finalStake = stake_points || rankingPointsStake || 0;
+
+    if (!sport || !ground) {
+      return NextResponse.json({ success: false, error: 'sport and ground are required' }, { status: 400 });
     }
 
     const db = await getDb();
-    const id = crypto.randomUUID();
+    const id = `ch-${Date.now()}`;
     const now = new Date().toISOString();
 
     await db.execute(
       `INSERT INTO challenges (id, challenger_id, challenged_id, sport, ground, scheduled_at, description, mode, status, ranking_points_stake, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)`,
-      [id, user.userId, challengedId, sport, ground, scheduledAt, description, mode, rankingPointsStake, now]
+      [id, user.userId, challengedId, sport, ground, finalMatchTime, description, mode, finalStake, now]
     );
 
     // Notify the challenged player if specific

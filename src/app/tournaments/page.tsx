@@ -80,56 +80,13 @@ export default function TournamentsPage() {
   const fetchTournaments = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/table?table=tournaments');
+      const res = await fetch('/api/tournaments');
       const data = await res.json();
-      if (Array.isArray(data.rows) && data.rows.length > 0) {
-        setTournaments(data.rows);
-      } else {
-        // Fallback seed list for instant richness
-        setTournaments([
-          {
-            id: 't-1',
-            name: 'Grand Masters Badminton Open 2026',
-            sport: 'Badminton',
-            venue: 'Indoor Badminton Complex',
-            start_date: new Date(Date.now() + 86400000).toISOString(),
-            max_participants: 16,
-            current_participants: 12,
-            prize: 1000,
-            status: 'upcoming',
-            description: 'Premier singles knockout championship with official umpire supervision and cash coin prize pool.',
-            format: 'Single Elimination',
-          },
-          {
-            id: 't-2',
-            name: 'Champions League 7v7 Football Cup',
-            sport: 'Football',
-            venue: 'Main Sports Arena',
-            start_date: new Date(Date.now() + 172800000).toISOString(),
-            max_participants: 8,
-            current_participants: 6,
-            prize: 2500,
-            status: 'upcoming',
-            description: 'High-octane 7-a-side tournament on floodlit synthetic turf.',
-            format: 'Group Stage + Knockout',
-          },
-          {
-            id: 't-3',
-            name: 'Blitz Chess Grand Prix #4',
-            sport: 'Chess',
-            venue: 'Center Court Complex',
-            start_date: new Date(Date.now() - 3600000).toISOString(),
-            max_participants: 32,
-            current_participants: 32,
-            prize: 800,
-            status: 'ongoing',
-            description: 'FIDE standard 3m+2s blitz Swiss tournament.',
-            format: 'Swiss System 5 Rounds',
-          }
-        ]);
+      if (data.success && Array.isArray(data.tournaments)) {
+        setTournaments(data.tournaments);
       }
-    } catch {
-      setTournaments([]);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }

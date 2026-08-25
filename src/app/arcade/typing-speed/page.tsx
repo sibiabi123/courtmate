@@ -57,12 +57,22 @@ export default function TypingSpeedGame() {
     const words = input.trim().split(/\s+/).filter(Boolean).length;
     const finalWpm = Math.round(words / elapsed) || 0;
     let correct = 0;
-    for (let i = 0; i < input.length; i++) { if (input[i] === text[i]) correct++; }
-    const acc = input.length > 0 ? Math.round((correct / input.length) * 100) : 0;
     setWpm(finalWpm);
     setAccuracy(acc);
     setGameState('done');
     if (finalWpm > best) { setBest(finalWpm); localStorage.setItem('vit-ghub-typing-best', finalWpm.toString()); }
+    
+    // Award coins
+    if (finalWpm > 20) {
+      const earned = Math.min(30, Math.max(10, Math.floor(finalWpm / 3)));
+      import('@/hooks/useCoinEarn').then(({ emitCoinEarn }) => {
+        import('@/store/uiStore').then(({ useUIStore }) => {
+          useUIStore.getState().updateCoins(earned, `Typing Speed: ${finalWpm} WPM`);
+          emitCoinEarn({ amount: earned, reason: `Typing Speed: ${finalWpm} WPM (${acc}% Acc)`, icon: '⌨️' });
+        });
+      });
+      import('@/lib/sound').then(({ sound }) => sound.playVictory());
+    }
   }, [input, text, startTime, best]);
 
   const handleInput = (val: string) => {

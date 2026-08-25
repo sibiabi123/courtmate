@@ -42,17 +42,29 @@ export default function SnakeGame() {
 
   const triggerGameOver = useCallback((finalScore: number) => {
     setGameState('gameover');
-    if (currentUser && finalScore > 0) {
-      addArcadeScore({
-        id: `score-${Date.now()}`,
-        userId: currentUser.id,
-        gameSlug: 'snake',
-        score: finalScore,
-        timestamp: new Date().toISOString(),
-      });
-      // Recalculate local high score
-      const storeHighScore = getHighScore('snake');
-      setHighScore(Math.max(storeHighScore, finalScore));
+    if (finalScore > 0) {
+      const earnedCoins = Math.min(30, Math.max(5, Math.floor(finalScore / 20)));
+      try {
+        import('@/hooks/useCoinEarn').then(({ emitCoinEarn }) => {
+          import('@/store/uiStore').then(({ useUIStore }) => {
+            useUIStore.getState().updateCoins(earnedCoins, `Cyber Snake: ${finalScore} pts`);
+            emitCoinEarn({ amount: earnedCoins, reason: `Cyber Snake: ${finalScore} pts!`, icon: '🐍' });
+          });
+        });
+        import('@/lib/sound').then(({ sound }) => sound.playVictory());
+      } catch {}
+
+      if (currentUser) {
+        addArcadeScore({
+          id: `score-${Date.now()}`,
+          userId: currentUser.id,
+          gameSlug: 'snake',
+          score: finalScore,
+          timestamp: new Date().toISOString(),
+        });
+        const storeHighScore = getHighScore('snake');
+        setHighScore(Math.max(storeHighScore, finalScore));
+      }
     }
   }, [currentUser, addArcadeScore, getHighScore]);
 

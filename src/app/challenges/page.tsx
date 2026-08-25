@@ -117,6 +117,13 @@ export default function ChallengesPage() {
       const data = await res.json();
       if (data.success) {
         sound.playCoin();
+        try {
+          const { emitCoinEarn } = await import('@/hooks/useCoinEarn');
+          const { useUIStore } = await import('@/store/uiStore');
+          useUIStore.getState().updateCoins(25, 'Issued 1v1 Challenge');
+          useUIStore.getState().incrementChallengesIssued();
+          emitCoinEarn({ amount: 25, reason: 'Challenge Issued to Arena! (+25 🪙)', icon: '⚔️' });
+        } catch {}
         setShowCreateModal(false);
         fetchChallenges();
       } else {
@@ -141,6 +148,12 @@ export default function ChallengesPage() {
       const data = await res.json();
       if (data.success) {
         sound.playVictory();
+        try {
+          const { emitCoinEarn } = await import('@/hooks/useCoinEarn');
+          const { useUIStore } = await import('@/store/uiStore');
+          useUIStore.getState().updateCoins(10, 'Accepted 1v1 Duel');
+          emitCoinEarn({ amount: 10, reason: 'Accepted 1v1 Duel! (+10 🪙)', icon: '⚡' });
+        } catch {}
         fetchChallenges();
       }
     } catch (e) {
@@ -154,7 +167,8 @@ export default function ChallengesPage() {
     sound.playVictory();
 
     try {
-      const winnerId = parseInt(myScore) > parseInt(oppScore) ? currentUser.id : showReportModal.opponent_id;
+      const isMeWinner = parseInt(myScore) > parseInt(oppScore);
+      const winnerId = isMeWinner ? currentUser.id : showReportModal.opponent_id;
       const res = await fetch('/api/challenges', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -166,6 +180,15 @@ export default function ChallengesPage() {
       });
       const data = await res.json();
       if (data.success) {
+        if (isMeWinner) {
+          const stake = showReportModal.stake_points || 25;
+          try {
+            const { emitCoinEarn } = await import('@/hooks/useCoinEarn');
+            const { useUIStore } = await import('@/store/uiStore');
+            useUIStore.getState().updateCoins(stake, 'Won Ranked Duel');
+            emitCoinEarn({ amount: stake, reason: `Victory in Ranked Duel! (+${stake} 🪙)`, icon: '👑' });
+          } catch {}
+        }
         setShowReportModal(null);
         fetchChallenges();
       }

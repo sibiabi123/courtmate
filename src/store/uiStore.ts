@@ -14,6 +14,12 @@ interface User {
   glickoRating: { rating: number; rd: number; vol: number };
 }
 
+interface CoinTransaction {
+  id: string;
+  amount: number;
+  reason: string;
+  createdAt: string;
+}
 
 interface UIState {
   currentUser: User | null;
@@ -22,6 +28,12 @@ interface UIState {
   isSidebarOpen: boolean;
   activeModal: string | null;
   notifications: Array<{ id: string; title: string; message: string; read: boolean; createdAt: string }>;
+  coinHistory: CoinTransaction[];
+  lastDailyClaim: string | null; // ISO date string
+  hasCompletedOnboarding: boolean;
+  totalMatchesJoined: number;
+  totalMatchesPosted: number;
+  totalChallengesIssued: number;
 
   // Actions
   setCurrentUser: (user: User | null) => void;
@@ -32,7 +44,13 @@ interface UIState {
   addNotification: (n: Omit<UIState['notifications'][number], 'id' | 'read' | 'createdAt'>) => void;
   markNotificationRead: (id: string) => void;
   clearNotifications: () => void;
-  updateCoins: (amount: number) => void;
+  updateCoins: (amount: number, reason?: string) => void;
+  claimDailyBonus: () => number; // returns coins earned (0 if already claimed)
+  completeOnboarding: () => void;
+  incrementMatchesJoined: () => void;
+  incrementMatchesPosted: () => void;
+  incrementChallengesIssued: () => void;
+  canClaimDaily: () => boolean;
 }
 
 export const useUIStore = create<UIState>()(
@@ -44,6 +62,12 @@ export const useUIStore = create<UIState>()(
       isSidebarOpen: false,
       activeModal: null,
       notifications: [],
+      coinHistory: [],
+      lastDailyClaim: null,
+      hasCompletedOnboarding: false,
+      totalMatchesJoined: 0,
+      totalMatchesPosted: 0,
+      totalChallengesIssued: 0,
 
       setCurrentUser: (user) =>
         set({ currentUser: user, isAuthenticated: !!user }),
@@ -55,7 +79,6 @@ export const useUIStore = create<UIState>()(
         set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
 
       setSidebarOpen: (open) => set({ isSidebarOpen: open }),
-
       setActiveModal: (modal) => set({ activeModal: modal }),
 
       addNotification: (n) =>
@@ -67,7 +90,7 @@ export const useUIStore = create<UIState>()(
               read: false,
               createdAt: new Date().toISOString(),
             },
-            ...s.notifications.slice(0, 49), // keep last 50
+            ...s.notifications.slice(0, 49),
           ],
         })),
 
@@ -80,20 +103,87 @@ export const useUIStore = create<UIState>()(
 
       clearNotifications: () => set({ notifications: [] }),
 
-      updateCoins: (amount) =>
+      updateCoins: (amount, reason = 'Activity Reward') =>
         set((s) => ({
           currentUser: s.currentUser
-            ? { ...s.currentUser, coins: s.currentUser.coins + amount }
+            ? { ...s.currentUser, coins: Math.max(0, s.currentUser.coins + amount) }
             : null,
+          coinHistory: amount > 0 ? [
+            {
+              id: `tx-${Date.now()}`,
+              amount,
+              reason,
+              createdAt: new Date().toISOString(),
+            },
+            ...s.coinHistory.slice(0, 99),
+          ] : s.coinHistory,
         })),
+
+      canClaimDaily: () => {
+        const { lastDailyClaim, isAuthenticated } = get();
+        if (!isAuthenticated) return false;
+        if (!lastDailyClaim) return true;
+        const last = new Date(lastDailyClaim);
+        const now = new Date();
+        // Check if it's a different calendar day
+        return (
+          last.getDate() !== now.getDate() ||
+          last.getMonth() !== now.getMonth() ||
+          last.getFullYear() !== now.getFullYear()
+        );
+      },
+
+      claimDailyBonus: () => {
+        const { canClaimDaily, currentUser, totalMatchesJoined, coinHistory } = get();
+        if (!canClaimDaily() || !currentUser) return 0;
+
+        // Streak bonus: more coins for consecutive days
+        const streakDays = coinHistory.filter(tx => {
+          const d = new Date(tx.createdAt);
+          const now = new Date();
+          const daysDiff = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+          return daysDiff <= 7 && tx.reason === 'Daily Login Bonus';
+        }).length;
+
+        const bonus = Math.min(50 + streakDays * 10, 150); // 50–150 coins
+
+        set((s) => ({
+          lastDailyClaim: new Date().toISOString(),
+          currentUser: s.currentUser
+            ? { ...s.currentUser, coins: s.currentUser.coins + bonus }
+            : null,
+          coinHistory: [
+            { id: `tx-${Date.now()}`, amount: bonus, reason: 'Daily Login Bonus', createdAt: new Date().toISOString() },
+            ...s.coinHistory.slice(0, 99),
+          ],
+        }));
+        return bonus;
+      },
+
+      completeOnboarding: () => set({ hasCompletedOnboarding: true }),
+
+      incrementMatchesJoined: () =>
+        set((s) => ({ totalMatchesJoined: s.totalMatchesJoined + 1 })),
+
+      incrementMatchesPosted: () =>
+        set((s) => ({ totalMatchesPosted: s.totalMatchesPosted + 1 })),
+
+      incrementChallengesIssued: () =>
+        set((s) => ({ totalChallengesIssued: s.totalChallengesIssued + 1 })),
     }),
     {
-      name: 'vit-g-hub-ui-store',
+      name: 'courtmate-ui-store-v3',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         currentUser: state.currentUser,
         isAuthenticated: state.isAuthenticated,
         theme: state.theme,
+        coinHistory: state.coinHistory,
+        lastDailyClaim: state.lastDailyClaim,
+        hasCompletedOnboarding: state.hasCompletedOnboarding,
+        totalMatchesJoined: state.totalMatchesJoined,
+        totalMatchesPosted: state.totalMatchesPosted,
+        totalChallengesIssued: state.totalChallengesIssued,
       }),
     }
   )

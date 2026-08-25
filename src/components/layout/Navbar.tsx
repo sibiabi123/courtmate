@@ -128,6 +128,15 @@ export function Navbar() {
               </div>
             )}
 
+            {/* ── LIVE COIN BALANCE BADGE ── */}
+            {isAuthenticated && currentUser && (
+              <Link href="/arcade" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#ffd60a]/30 text-xs font-black transition-all hover:border-[#ffd60a]/60 hover:bg-[#ffd60a]/5"
+                style={{ background: 'rgba(255,214,10,0.06)' }}>
+                <span className="text-[#ffd60a] text-sm">🪙</span>
+                <span className="text-[#ffd60a]">{currentUser.coins}</span>
+              </Link>
+            )}
+
             {isAuthenticated && currentUser ? (
               <>
                 {/* Coins */}

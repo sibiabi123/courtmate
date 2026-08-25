@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, Clock, Users, RefreshCw, Share2, Eye, CheckCircle, Zap, MapPin, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { LiveScoreboardTicker } from '@/components/ui/LiveScoreboardTicker';
+import { ProfileProgressWidget } from '@/components/ui/ProfileProgressWidget';
 
 const SPORTS = ['All', 'Cricket', 'Football', 'Badminton', 'Basketball', 'Table Tennis', 'Volleyball', 'Kabaddi', 'Tennis', 'Chess'];
 const GROUNDS = ['Main Sports Arena', 'Cricket Nets Arena', 'Basketball Center Court', 'Indoor Badminton Complex', 'Table Tennis Hall', 'Volleyball Court', 'Athletic Complex', 'Outdoor Multi-Courts', 'Olympic Swimming Pool', 'Central Sports Ground'];
@@ -178,6 +179,16 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
       const res = await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, scheduledStart }) });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to create post');
+      // Reward coins for posting a match
+      try {
+        const { emitCoinEarn } = await import('@/hooks/useCoinEarn');
+        const { useUIStore } = await import('@/store/uiStore');
+        useUIStore.getState().updateCoins(15, 'Posted a Match Lobby');
+        useUIStore.getState().incrementMatchesPosted();
+        emitCoinEarn({ amount: 15, reason: 'Match Lobby Created! (+15 🪙)', icon: '🏅' });
+        const { sound } = await import('@/lib/sound');
+        sound.playVictory();
+      } catch {}
       onCreated(); onClose();
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
@@ -271,6 +282,9 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
 // ── Post Card ───────────────────────────────────────────────────────────────
 function PostCard({ post, onJoined, onViewPlayers }: { post: any; onJoined: () => void; onViewPlayers: (post: any) => void }) {
   const { currentUser } = useUIStore();
+  const { earnForJoiningMatch } = require('@/hooks/useCoinEarn').useCoinEarn ? (() => {
+    try { return require('@/hooks/useCoinEarn').useCoinEarn(); } catch { return {}; }
+  })() : {};
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -281,6 +295,9 @@ function PostCard({ post, onJoined, onViewPlayers }: { post: any; onJoined: () =
   const pct = Math.min(100, (post.currentPlayers / post.maxPlayers) * 100);
   const scheduledTime = post.scheduledStart ? new Date(post.scheduledStart) : null;
   const tier = getTier(post.user?.glickoRating ?? 1500);
+  const spotsLeft = post.maxPlayers - post.currentPlayers;
+  const isUrgent = spotsLeft === 1;
+  const sportEmoji = SPORT_EMOJIS[post.sport] || '🏅';
 
   const handleJoin = async () => {
     if (!currentUser) return;
@@ -288,7 +305,20 @@ function PostCard({ post, onJoined, onViewPlayers }: { post: any; onJoined: () =
     try {
       const res = await fetch('/api/posts/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ postId: post.id }) });
       const data = await res.json();
-      if (data.success) { setJoined(true); onJoined(); }
+      if (data.success) {
+        setJoined(true);
+        onJoined();
+        // Earn coins for joining
+        try {
+          const { emitCoinEarn } = await import('@/hooks/useCoinEarn');
+          const { useUIStore } = await import('@/store/uiStore');
+          useUIStore.getState().updateCoins(10, 'Joined a Match');
+          useUIStore.getState().incrementMatchesJoined();
+          emitCoinEarn({ amount: 10, reason: 'Joined a Match Lobby!', icon: '⚡' });
+        } catch {}
+        const { sound } = await import('@/lib/sound');
+        sound.playCoin();
+      }
       else setError(data.error || 'Failed to join');
     } catch { setError('Network error'); }
     setJoining(false);
@@ -299,10 +329,36 @@ function PostCard({ post, onJoined, onViewPlayers }: { post: any; onJoined: () =
     navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   };
 
+  const handleWhatsApp = () => {
+    const url = `${window.location.origin}/feed?post=${post.id}`;
+    const msg = encodeURIComponent(`🏅 Join my ${post.sport} match at ${post.ground}!\n⏰ ${scheduledTime ? scheduledTime.toLocaleString('en-IN') : 'Soon'}\n👥 ${spotsLeft} slot${spotsLeft !== 1 ? 's' : ''} open!\n🔗 ${url}`);
+    window.open(`https://wa.me/?text=${msg}`, '_blank');
+  };
+
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-white/8 p-5 hover:border-white/15 transition-all"
-      style={{ background: 'rgba(17,17,24,0.9)' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
+      className={`rounded-3xl border p-5 transition-all relative overflow-hidden group ${
+        isUrgent ? 'border-[#ff006e]/50' : isFull ? 'border-white/5' : 'border-white/10 hover:border-[#7b2ff7]/40'
+      }`}
+      style={{
+        background: 'linear-gradient(145deg, rgba(17,17,24,0.95), rgba(10,10,15,0.95))',
+        boxShadow: isUrgent
+          ? '0 4px 30px rgba(255,0,110,0.15), inset 0 1px 0 rgba(255,255,255,0.05)'
+          : '0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)',
+      }}
+    >
+      {/* Urgency top bar */}
+      {isUrgent && !isFull && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#ff006e] via-[#ffd60a] to-[#ff006e] animate-pulse" />
+      )}
+
+      {/* Sport icon watermark */}
+      <div className="absolute top-4 right-4 text-5xl opacity-5 pointer-events-none select-none font-black">
+        {sportEmoji}
+      </div>
 
       {/* Creator row */}
       <div className="flex items-center gap-3 mb-4">
@@ -315,70 +371,103 @@ function PostCard({ post, onJoined, onViewPlayers }: { post: any; onJoined: () =
           </div>
           <p className="text-[11px] text-[#6b6b80] font-body">{post.user?.hostel}</p>
         </div>
-        <div className="text-2xl">{SPORT_EMOJIS[post.sport] || '🏅'}</div>
+        {/* Coin earn hint */}
+        {!isOwner && !joined && !isFull && currentUser && (
+          <span className="text-[10px] font-black text-[#ffd60a] bg-[#ffd60a]/10 border border-[#ffd60a]/20 px-2 py-1 rounded-lg">+10 🪙</span>
+        )}
       </div>
 
-      {/* Match details */}
-      <div className="mb-3">
-        <h3 className="font-black text-white text-base font-outfit mb-1">{post.sport} Match</h3>
+      {/* Match info block */}
+      <div className="rounded-2xl p-4 mb-4" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xl">{sportEmoji}</span>
+          <h3 className="font-black text-white text-base font-outfit">{post.sport} Match</h3>
+          {isUrgent && !isFull && (
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#ff006e]/20 text-[#ff006e] border border-[#ff006e]/30 animate-pulse">
+              🔥 LAST SPOT!
+            </span>
+          )}
+        </div>
         <div className="flex flex-wrap gap-3 text-xs text-[#a0a0b8] font-body">
           <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-[#00f5d4]" />{post.ground}</span>
           {scheduledTime && <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-[#7b2ff7]" />{scheduledTime.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {scheduledTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>}
         </div>
-        {post.description && <p className="text-sm text-[#a0a0b8] mt-2 font-body leading-relaxed">{post.description}</p>}
+        {post.description && <p className="text-xs text-[#a0a0b8] mt-2 font-body leading-relaxed">{post.description}</p>}
       </div>
 
       {/* Slots Progress */}
       <div className="mb-4">
-        <div className="flex items-center justify-between text-xs mb-1.5">
+        <div className="flex items-center justify-between text-xs mb-2">
           <span className="text-[#6b6b80] font-body flex items-center gap-1"><Users className="w-3 h-3" />{post.currentPlayers}/{post.maxPlayers} players</span>
-          <span className="font-bold" style={{ color: isFull ? '#ef4444' : pct >= 70 ? '#f59e0b' : '#10b981' }}>
-            {isFull ? 'FULL' : `${post.maxPlayers - post.currentPlayers} spots left`}
+          <span className="font-black text-xs" style={{ color: isFull ? '#ef4444' : spotsLeft <= 2 ? '#f59e0b' : '#10b981' }}>
+            {isFull ? '🔴 FULL' : spotsLeft <= 2 ? `⚠️ ${spotsLeft} left!` : `✅ ${spotsLeft} spots open`}
           </span>
         </div>
-        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-          <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6 }}
-            className="h-full rounded-full" style={{ background: isFull ? '#ef4444' : 'linear-gradient(90deg, #7b2ff7, #00f5d4)' }} />
+        <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="h-full rounded-full relative overflow-hidden"
+            style={{ background: isFull ? '#ef4444' : pct >= 80 ? 'linear-gradient(90deg, #f59e0b, #ff006e)' : 'linear-gradient(90deg, #7b2ff7, #00f5d4)' }}
+          >
+            {/* Shimmer */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_ease-in-out_infinite]" />
+          </motion.div>
         </div>
       </div>
 
-      {/* Error */}
       {error && <p className="text-red-400 text-xs mb-3 font-body">{error}</p>}
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
-        {/* View Players */}
-        <button onClick={() => onViewPlayers(post)}
-          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-white/8"
-          style={{ color: '#a0a0b8', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => onViewPlayers(post)}
+          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-white/8 text-[#a0a0b8] hover:text-white"
+          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+        >
           <Eye className="w-3.5 h-3.5" />Players
         </button>
 
-        {/* Share */}
-        <button onClick={handleShare}
+        {/* WhatsApp Share */}
+        <button
+          onClick={handleWhatsApp}
+          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-emerald-500/10 text-[#25D366] hover:text-emerald-300"
+          style={{ border: '1px solid rgba(37,211,102,0.2)' }}
+        >
+          💬 WhatsApp
+        </button>
+
+        <button
+          onClick={handleShare}
           className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-white/8"
-          style={{ color: copied ? '#10b981' : '#a0a0b8', border: '1px solid rgba(255,255,255,0.08)' }}>
-          {copied ? <><Check className="w-3.5 h-3.5" />Copied</> : <><Share2 className="w-3.5 h-3.5" />Share</>}
+          style={{ color: copied ? '#10b981' : '#a0a0b8', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          {copied ? <><Check className="w-3.5 h-3.5" />Copied</> : <><Share2 className="w-3.5 h-3.5" />Link</>}
         </button>
 
         <div className="flex-1" />
 
-        {/* Join / Owner / Full */}
         {isOwner ? (
           <span className="text-xs font-bold text-[#7b2ff7] px-4 py-2 rounded-xl" style={{ background: 'rgba(123,47,247,0.12)', border: '1px solid rgba(123,47,247,0.2)' }}>
-            Manage Match
+            📋 Your Lobby
           </span>
         ) : joined ? (
           <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 px-4 py-2 rounded-xl" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
-            <CheckCircle className="w-3.5 h-3.5" />Joined!
+            <CheckCircle className="w-3.5 h-3.5" />Joined! +10 🪙
           </span>
         ) : !currentUser ? (
-          <a href="/login" className="text-xs font-bold text-white px-4 py-2 rounded-xl" style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}>Sign In to Join</a>
+          <a href="/login" className="text-xs font-bold text-white px-5 py-2 rounded-xl shadow-lg" style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}>
+            Sign In to Join
+          </a>
         ) : (
-          <button onClick={handleJoin} disabled={joining || isFull}
-            className="text-xs font-bold text-white px-5 py-2 rounded-xl transition-all hover:scale-105 disabled:opacity-50"
-            style={{ background: isFull ? '#2a2a3a' : 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}>
-            {joining ? '...' : isFull ? 'Full' : 'Join'}
+          <button
+            onClick={handleJoin}
+            disabled={joining || isFull}
+            className="text-xs font-black text-white px-5 py-2.5 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 shadow-lg"
+            style={{ background: isFull ? 'rgba(42,42,58,1)' : 'linear-gradient(135deg, #7b2ff7, #00f5d4)', boxShadow: isFull ? 'none' : '0 0 20px rgba(123,47,247,0.3)' }}
+          >
+            {joining ? <span className="inline-flex items-center gap-1"><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /></span> : isFull ? '🔴 Full' : '⚡ Join (+10 🪙)'}
           </button>
         )}
       </div>
@@ -473,6 +562,11 @@ export default function FeedPage() {
             </AnimatePresence>
           </div>
         )}
+
+        {/* Profile Unlock Progress */}
+        <div className="mb-6">
+          <ProfileProgressWidget />
+        </div>
 
         {/* Live Broadcast Scoreboard Ticker */}
         <div className="mb-6">

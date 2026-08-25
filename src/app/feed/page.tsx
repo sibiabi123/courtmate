@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, Clock, Users, RefreshCw, Share2, Eye, CheckCircle, Zap, MapPin, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
+import { LiveScoreboardTicker } from '@/components/ui/LiveScoreboardTicker';
 
 const SPORTS = ['All', 'Cricket', 'Football', 'Badminton', 'Basketball', 'Table Tennis', 'Volleyball', 'Kabaddi', 'Tennis', 'Chess'];
 const GROUNDS = ['Main Sports Arena', 'Cricket Nets Arena', 'Basketball Center Court', 'Indoor Badminton Complex', 'Table Tennis Hall', 'Volleyball Court', 'Athletic Complex', 'Outdoor Multi-Courts', 'Olympic Swimming Pool', 'Central Sports Ground'];
@@ -472,6 +473,11 @@ export default function FeedPage() {
             </AnimatePresence>
           </div>
         )}
+
+        {/* Live Broadcast Scoreboard Ticker */}
+        <div className="mb-6">
+          <LiveScoreboardTicker />
+        </div>
 
         {/* Sport Filter */}
         <div className="flex gap-2 overflow-x-auto pb-3 mb-5 scrollbar-none">

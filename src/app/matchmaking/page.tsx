@@ -127,7 +127,7 @@ export default function MatchmakingPage() {
             <Zap className="w-3.5 h-3.5" />AI-Powered Matchmaking
           </div>
           <h1 className="text-4xl font-black font-outfit text-white mb-3">Find Your <span style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Perfect Match</span></h1>
-          <p className="text-[#a0a0b8] font-body max-w-lg mx-auto">Smart Glicko-2 rating-based matchmaking connects you with campus players at your exact skill level.</p>
+          <p className="text-[#a0a0b8] font-body max-w-lg mx-auto">Smart Glicko-2 rating-based matchmaking connects you with players at your exact skill level.</p>
         </motion.div>
 
         {/* Search Card */}

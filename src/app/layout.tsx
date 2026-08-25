@@ -11,10 +11,11 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 
 export const metadata: Metadata = {
-  title: 'CourtMate | Campus Sports Matchmaking for VIT',
-  description: 'Find players, join sports matches, track your ELO ratings and compete in tournaments at VIT University. Cricket, Football, Badminton, Basketball and more.',
-  keywords: 'VIT sports, campus matchmaking, cricket, football, badminton, basketball, ELO ratings, VIT Vellore',
+  title: 'CourtMate | International Sports Matchmaking & Tournament Platform',
+  description: 'Find players, join sports matches, track your ELO ratings, and compete in tournaments. Cricket, Football, Badminton, Basketball, Tennis, Chess, and more.',
+  keywords: 'sports matchmaking, pick-up games, tournaments, player rankings, ELO ratings, sports community, cricket, football, badminton, basketball, tennis, chess',
 };
+
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

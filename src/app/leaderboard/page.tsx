@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Trophy, Medal, Crown, Star, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
-const HOSTELS = ['All', 'MH-A Block', 'MH-B Block', 'MH-C Block', 'MH-D Block', 'MH-E Block', 'MH-F Block', 'MH-G Block', 'MH-H Block', 'MH-K Block', 'MH-Q Block', 'MH-R Block', 'LH-A Block', 'LH-B Block', 'LH-C Block', 'LH-D Block', 'LH-E Block', 'LH-F Block', 'Day Scholar'];
+const REGIONS = ['All', 'Main Campus / Center', 'North District', 'South District', 'East District', 'West District', 'Sports Complex', 'Downtown / Off-Campus', 'Day Scholar / Resident'];
 
 function getTier(rating: number) {
   if (rating >= 2000) return { label: 'Champion', emoji: '👑', color: '#ffd60a', bg: 'rgba(255,214,10,0.12)' };
@@ -64,17 +64,17 @@ export default function LeaderboardPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-4"
             style={{ background: 'rgba(255,214,10,0.12)', color: '#ffd60a', border: '1px solid rgba(255,214,10,0.25)' }}>
-            <Trophy className="w-3.5 h-3.5" />Campus ELO Rankings
+            <Trophy className="w-3.5 h-3.5" />Official ELO Leaderboard
           </div>
           <h1 className="text-4xl font-black font-outfit text-white mb-3">
             Who Rules <span style={{ background: 'linear-gradient(135deg, #ffd60a, #ff006e)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>the Court?</span>
           </h1>
-          <p className="text-[#a0a0b8] font-body text-sm max-w-md mx-auto">Official Glicko-2 ELO leaderboards for VIT University campus athletes. Rankings update in real-time.</p>
+          <p className="text-[#a0a0b8] font-body text-sm max-w-md mx-auto">Official Glicko-2 ELO leaderboards for ranked players and squads. Rankings update in real-time.</p>
         </motion.div>
 
-        {/* Hostel Filter */}
+        {/* Region Filter */}
         <div className="flex gap-2 overflow-x-auto pb-3 mb-8 scrollbar-none">
-          {HOSTELS.map(h => (
+          {REGIONS.map(h => (
             <button key={h} onClick={() => setHostel(h)}
               className="shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all"
               style={{ background: hostel === h ? '#7b2ff7' : 'rgba(255,255,255,0.04)', color: hostel === h ? 'white' : '#6b6b80', border: `1px solid ${hostel === h ? '#7b2ff7' : 'rgba(255,255,255,0.08)'}` }}>

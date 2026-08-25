@@ -127,8 +127,8 @@ export function ChatDrawer() {
                 </div>
               ) : (
                 <div>
-                  <h3 className="font-[family-name:var(--font-outfit)] font-bold text-lg text-white">Campus Chats</h3>
-                  <p className="text-[10px] text-[#6b6b80]">Coordinate sports meetups with other VIT students</p>
+                  <h3 className="font-[family-name:var(--font-outfit)] font-bold text-lg text-white">Match Chats</h3>
+                  <p className="text-[10px] text-[#6b6b80]">Coordinate sports meetups with teammates and opponents</p>
                 </div>
               )}
               <button onClick={() => setIsOpen(false)} className="text-[#a0a0b8] hover:text-white">

@@ -22,22 +22,22 @@ const STEPS = [
   { step: '03', title: 'Play & Earn ELO', desc: 'Your Glicko-2 rating updates after every match. Rise through the ranks.', icon: Star },
 ];
 
-// VIT Campus photos from Wikimedia Commons (public domain / free licensing)
-const VIT_PHOTOS = [
+// International Sports Venue photos from Unsplash
+const ARENA_PHOTOS = [
   {
-    src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/VIT_University_Vellore.jpg/1280px-VIT_University_Vellore.jpg',
-    alt: 'VIT University Main Campus',
-    caption: 'Main Campus',
+    src: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=1280&q=80',
+    alt: 'Championship Stadium',
+    caption: 'Championship Stadium',
   },
   {
-    src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/VIT_University_Main_Block.jpg/1280px-VIT_University_Main_Block.jpg',
-    alt: 'VIT University Main Block',
-    caption: 'Tech Tower',
+    src: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1280&q=80',
+    alt: 'Indoor Sports Arena',
+    caption: 'Indoor Sports Arena',
   },
   {
-    src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/VIT_Library.jpg/1280px-VIT_Library.jpg',
-    alt: 'VIT Library',
-    caption: 'Central Library',
+    src: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1280&q=80',
+    alt: 'Center Court Complex',
+    caption: 'Center Court Complex',
   },
 ];
 
@@ -107,7 +107,7 @@ export default function HomePage() {
           <motion.div initial="hidden" animate="show" variants={stagger}>
             <motion.div variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-[#a0a0b8] mb-6">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              {stats.totalUsers > 0 ? `${stats.totalUsers} registered students` : 'Campus Sports Matchmaking'}
+              {stats.totalUsers > 0 ? `${stats.totalUsers} registered athletes` : 'Global Sports Matchmaking Platform'}
             </motion.div>
 
             <motion.h1 variants={fadeUp} className="text-5xl md:text-7xl font-black font-outfit leading-tight mb-6">
@@ -118,8 +118,7 @@ export default function HomePage() {
             </motion.h1>
 
             <motion.p variants={fadeUp} className="text-lg md:text-xl text-[#a0a0b8] max-w-2xl mx-auto mb-10 leading-relaxed font-body">
-              CourtMate connects VIT students for campus sports — cricket, football, badminton, basketball, and more.
-              Post a match lobby, coordinate with your batchmates, and track your ELO ranking.
+              CourtMate connects players and athletes for pick-up matches, tournaments, and competitive sports — cricket, football, badminton, basketball, tennis, chess, and more. Post a match lobby, challenge opponents, and track your global ELO ranking.
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -155,15 +154,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* VIT CAMPUS GALLERY */}
+      {/* ARENA GALLERY */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
-            <h2 className="text-3xl font-black font-outfit text-white">Your Campus. Your Arena.</h2>
-            <p className="text-[#6b6b80] mt-2 font-body">Every court, ground, and hall at VIT Vellore is your playground.</p>
+            <h2 className="text-3xl font-black font-outfit text-white">World-Class Arenas & Courts</h2>
+            <p className="text-[#6b6b80] mt-2 font-body">From floodlit outdoor turfs to indoor wooden sports halls, find games at every venue.</p>
           </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {VIT_PHOTOS.map((photo, i) => (
+            {ARENA_PHOTOS.map((photo, i) => (
               <motion.div key={i} initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="relative group overflow-hidden rounded-2xl border border-white/8" style={{ height: '240px' }}>
                 {!imgError[i] ? (
                   <img
@@ -174,7 +173,7 @@ export default function HomePage() {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1a1a2e, #25253d)' }}>
-                    <span className="text-5xl">{['🏛️', '🏆', '🏢'][i]}</span>
+                    <span className="text-5xl">{['🏟️', '🏸', '🏀'][i]}</span>
                   </div>
                 )}
                 <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)' }} />

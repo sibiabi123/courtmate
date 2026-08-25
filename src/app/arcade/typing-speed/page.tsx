@@ -6,16 +6,16 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, RotateCcw, Trophy, Clock, Keyboard } from 'lucide-react';
 
 const sentences = [
-  "The quick brown fox jumps over the lazy dog near the campus ground",
-  "Cricket is the most popular sport played at VIT every evening",
-  "Students gather at the basketball court for exciting pickup games",
-  "Practice makes perfect when you play badminton every morning",
-  "The football match at main ground starts at five in the evening",
-  "Table tennis room is always packed during the lunch break hours",
-  "VIT gaming hub helps students find teammates for every sport",
-  "Volleyball tournaments bring together players from all hostels",
-  "The swimming pool opens early morning for fitness enthusiasts",
-  "Chess players meet at the common room for timed practice games",
+  "The quick brown fox jumps over the lazy dog near the arena ground",
+  "Cricket is one of the most exciting physical sports played worldwide",
+  "Players gather at the center basketball court for thrilling pickup games",
+  "Practice makes perfect when you play badminton doubles every morning",
+  "The football match at the championship stadium starts at five today",
+  "Table tennis and racquet sports test your ultimate agility and reflexes",
+  "CourtMate helps athletes find teammates and join competitive matches",
+  "Volleyball and beach tournaments bring together top squads across clubs",
+  "The olympic swimming pool opens early morning for fitness enthusiasts",
+  "Grandmaster chess players calculate deep lines under heavy time pressure",
 ];
 
 export default function TypingSpeedGame() {

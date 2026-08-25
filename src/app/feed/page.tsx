@@ -6,7 +6,7 @@ import { Plus, X, Clock, Users, RefreshCw, Share2, Eye, CheckCircle, Zap, MapPin
 import { useUIStore } from '@/store/uiStore';
 
 const SPORTS = ['All', 'Cricket', 'Football', 'Badminton', 'Basketball', 'Table Tennis', 'Volleyball', 'Kabaddi', 'Tennis', 'Chess'];
-const GROUNDS = ['Main Ground (Football/Cricket)', 'MH Cricket Net', 'Basketball Court', 'Indoor Badminton Hall', 'Table Tennis Room', 'Volleyball Court', 'Gymkhana Hall', 'Outdoor Multi-Courts', 'Swimming Pool', 'Anna Auditorium Ground'];
+const GROUNDS = ['Main Sports Arena', 'Cricket Nets Arena', 'Basketball Center Court', 'Indoor Badminton Complex', 'Table Tennis Hall', 'Volleyball Court', 'Athletic Complex', 'Outdoor Multi-Courts', 'Olympic Swimming Pool', 'Central Sports Ground'];
 const SPORT_EMOJIS: Record<string, string> = { Cricket: '🏏', Football: '⚽', Badminton: '🏸', Basketball: '🏀', 'Table Tennis': '🏓', Volleyball: '🏐', Kabaddi: '🤼', Tennis: '🎾', Chess: '♟️', default: '🏅' };
 
 function getTier(rating: number) {

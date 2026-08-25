@@ -105,15 +105,15 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 `);
 
 // Check if admin already exists
-const existing = sqlite.prepare('SELECT id FROM users WHERE email = ?').get('admin@vitstudent.ac.in');
+const existing = sqlite.prepare('SELECT id FROM users WHERE email = ?').get('admin@courtmate.io');
 if (!existing) {
   const adminId = crypto.randomUUID();
   const hash = bcrypt.hashSync('Admin@123', 12);
   sqlite.prepare(`
     INSERT INTO users (id, email, name, hash, hostel, role, coins, glicko_rating)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(adminId, 'admin@vitstudent.ac.in', 'CourtMate Admin', hash, 'Day Scholar', 'super_admin', 9999, 2000);
-  console.log('✅ Admin user created: admin@vitstudent.ac.in / Admin@123');
+  `).run(adminId, 'admin@courtmate.io', 'CourtMate Admin', hash, 'Main Campus', 'super_admin', 9999, 2000);
+  console.log('✅ Admin user created: admin@courtmate.io / Admin@123');
 } else {
   console.log('ℹ️  Admin user already exists.');
 }

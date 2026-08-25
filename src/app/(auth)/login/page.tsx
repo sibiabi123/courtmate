@@ -42,17 +42,17 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex">
-      {/* Left: VIT Campus Photo */}
+      {/* Left: Sports Arena Photo */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <img
-          src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/VIT_University_Vellore.jpg/1280px-VIT_University_Vellore.jpg"
-          alt="VIT University Campus"
+          src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1280&q=80"
+          alt="Sports Arena"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(10,10,15,0.75), rgba(123,47,247,0.4))' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(10,10,15,0.8), rgba(123,47,247,0.4))' }} />
         <div className="absolute bottom-12 left-10 right-10">
           <h2 className="text-4xl font-black font-outfit text-white mb-3">Court<span className="text-[#00f5d4]">Mate</span></h2>
-          <p className="text-white/80 text-lg leading-relaxed font-body">Campus sports matchmaking for VIT Vellore. Find players, join matches, track your ELO.</p>
+          <p className="text-white/80 text-lg leading-relaxed font-body">International sports matchmaking and tournaments. Find players, challenge rivals, join matches, and track your global ELO.</p>
         </div>
       </div>
 

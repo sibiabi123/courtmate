@@ -72,7 +72,7 @@ function CreateTournamentModal({ onClose, onCreated }: { onClose: () => void; on
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-[#a0a0b8] mb-1.5 uppercase tracking-wider">Tournament Name</label>
-            <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="e.g. VIT Cricket Championship 2026"
+            <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="e.g. Premier Cricket Championship 2026"
               className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white placeholder-[#4a4a5a] focus:outline-none focus:border-[#7b2ff7] transition-all" />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -153,7 +153,7 @@ export default function TournamentsPage() {
             <h1 className="text-3xl font-black font-outfit text-white flex items-center gap-2">
               <Trophy className="w-8 h-8 text-[#ffd60a]" />Championships
             </h1>
-            <p className="text-[#a0a0b8] text-sm mt-1 font-body">Official VIT campus tournament brackets and standings</p>
+            <p className="text-[#a0a0b8] text-sm mt-1 font-body">Official tournament brackets, live standings, and prize pools</p>
           </div>
           {currentUser && (
             <button onClick={() => setShowCreate(true)}
@@ -186,7 +186,7 @@ export default function TournamentsPage() {
             <Trophy className="w-12 h-12 text-[#4a4a5a] mx-auto mb-4" />
             <h3 className="text-lg font-bold text-white mb-2 font-outfit">No Tournaments Yet</h3>
             <p className="text-[#6b6b80] text-sm mb-6 font-body">
-              {currentUser ? 'Be the first to organize a VIT campus tournament!' : 'Log in to organize a campus tournament.'}
+              {currentUser ? 'Be the first to organize a championship tournament!' : 'Log in to organize a tournament.'}
             </p>
             {currentUser ? (
               <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white text-sm" style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}>

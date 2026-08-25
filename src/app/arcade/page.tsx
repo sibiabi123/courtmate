@@ -42,7 +42,7 @@ export default function ArcadePage() {
               👾 <span className="gradient-text">Arcade</span>
             </h1>
             <p className="text-[#6b6b80] max-w-md mx-auto">
-              Play browser games, climb the leaderboard, and compete with other VIT students
+              Play arcade games, climb the leaderboard, and compete with athletes worldwide
             </p>
           </motion.div>
         </div>

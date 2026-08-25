@@ -7,14 +7,15 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, UserPlus, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 
-const VIT_HOSTELS = [
-  'Day Scholar',
-  "Men's Hostel A", "Men's Hostel B", "Men's Hostel C", "Men's Hostel D",
-  "Men's Hostel E", "Men's Hostel F", "Men's Hostel G", "Men's Hostel H",
-  "Men's Hostel J", "Men's Hostel K", "Men's Hostel L", "Men's Hostel M",
-  "Men's Hostel N", "Men's Hostel P", "Men's Hostel Q", "Men's Hostel R",
-  "Ladies Hostel A", "Ladies Hostel B", "Ladies Hostel C",
-  "Ladies Hostel D", "Ladies Hostel E", "Ladies Hostel F",
+const REGIONS = [
+  'Main Campus / Center',
+  'North District',
+  'South District',
+  'East District',
+  'West District',
+  'Sports Complex',
+  'Downtown / Off-Campus',
+  'Day Scholar / Resident',
 ];
 
 function getPasswordStrength(pwd: string): { label: string; color: string; pct: number } {
@@ -33,7 +34,7 @@ function getPasswordStrength(pwd: string): { label: string; color: string; pct: 
 export default function RegisterPage() {
   const router = useRouter();
   const { setCurrentUser } = useUIStore();
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', hostel: 'Day Scholar' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', hostel: 'Main Campus / Center' });
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -72,17 +73,17 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex">
-      {/* Left: Campus photo */}
+      {/* Left: Sports Arena Photo */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <img
-          src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/VIT_University_Vellore.jpg/1280px-VIT_University_Vellore.jpg"
-          alt="VIT Campus"
+          src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1280&q=80"
+          alt="Sports Arena"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(10,10,15,0.75), rgba(0,245,212,0.3))' }} />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(10,10,15,0.8), rgba(0,245,212,0.3))' }} />
         <div className="absolute bottom-12 left-10 right-10">
           <h2 className="text-4xl font-black font-outfit text-white mb-3">Join Court<span className="text-[#00f5d4]">Mate</span></h2>
-          <p className="text-white/80 text-lg font-body">Create your student sports card, claim 100 welcome coins, and find your squad today.</p>
+          <p className="text-white/80 text-lg font-body">Create your player sports card, claim 100 welcome coins, and find your squad today.</p>
         </div>
       </div>
 
@@ -99,7 +100,7 @@ export default function RegisterPage() {
           </div>
 
           <h1 className="text-3xl font-black font-outfit text-white mb-2">Create your account</h1>
-          <p className="text-[#6b6b80] mb-8 font-body">Join VIT’s campus sports matchmaking platform</p>
+          <p className="text-[#6b6b80] mb-8 font-body">Join the international sports matchmaking & tournament platform</p>
 
           {error && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mb-6">
@@ -127,10 +128,10 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#a0a0b8] mb-2 font-outfit uppercase tracking-wider text-xs">Hostel / Campus block</label>
+              <label className="block text-sm font-medium text-[#a0a0b8] mb-2 font-outfit uppercase tracking-wider text-xs">Region / Campus Block</label>
               <select value={form.hostel} onChange={e => setForm({ ...form, hostel: e.target.value })}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#7b2ff7] transition-all" style={{ appearance: 'none' }}>
-                {VIT_HOSTELS.map(h => <option key={h} value={h} style={{ background: '#111118' }}>{h}</option>)}
+                {REGIONS.map(h => <option key={h} value={h} style={{ background: '#111118' }}>{h}</option>)}
               </select>
             </div>
 

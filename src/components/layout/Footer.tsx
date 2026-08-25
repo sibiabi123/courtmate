@@ -4,9 +4,9 @@ import { Zap } from 'lucide-react';
 const quickLinks = [
   { href: '/feed', label: 'Feed' },
   { href: '/challenges', label: 'Challenges' },
-  { href: '/arcade', label: 'Arcade' },
+  { href: '/matchmaking', label: 'Matchmaker' },
   { href: '/tournaments', label: 'Tournaments' },
-  { href: '/leaderboard', label: 'Leaderboard' },
+  { href: '/leaderboard', label: 'Rankings' },
 ];
 
 const aboutLinks = [

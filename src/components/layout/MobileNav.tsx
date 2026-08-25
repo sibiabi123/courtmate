@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Home, Swords, Gamepad2, Trophy, User } from 'lucide-react';
+import { Home, Rss, Swords, Trophy, BarChart3 } from 'lucide-react';
 
 const tabs = [
   { href: '/', label: 'Home', icon: Home },
-  { href: '/challenges', label: 'Challenges', icon: Swords },
-  { href: '/arcade', label: 'Arcade', icon: Gamepad2, center: true },
+  { href: '/feed', label: 'Feed', icon: Rss },
+  { href: '/challenges', label: 'Challenges', icon: Swords, center: true },
   { href: '/tournaments', label: 'Tourneys', icon: Trophy },
-  { href: '/leaderboard', label: 'Rankings', icon: User },
+  { href: '/leaderboard', label: 'Rankings', icon: BarChart3 },
 ];
 
 

@@ -13,7 +13,7 @@ const NAV_LINKS = [
   { href: '/challenges', label: 'Challenges', icon: Swords },
   { href: '/tournaments', label: 'Tournaments', icon: Trophy },
   { href: '/leaderboard', label: 'Rankings', icon: BarChart3 },
-  { href: '/arcade', label: 'Arcade', icon: Gamepad2 },
+  { href: '/matchmaking', label: 'Matchmaker', icon: Shield },
 ];
 
 
@@ -130,7 +130,7 @@ export function Navbar() {
 
             {/* ── LIVE COIN BALANCE BADGE ── */}
             {isAuthenticated && currentUser && (
-              <Link href="/arcade" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#ffd60a]/30 text-xs font-black transition-all hover:border-[#ffd60a]/60 hover:bg-[#ffd60a]/5"
+              <Link href={`/profile/${currentUser.id}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#ffd60a]/30 text-xs font-black transition-all hover:border-[#ffd60a]/60 hover:bg-[#ffd60a]/5"
                 style={{ background: 'rgba(255,214,10,0.06)' }}>
                 <span className="text-[#ffd60a] text-sm">🪙</span>
                 <span className="text-[#ffd60a]">{currentUser.coins}</span>
@@ -139,10 +139,6 @@ export function Navbar() {
 
             {isAuthenticated && currentUser ? (
               <>
-                {/* Coins */}
-                <div className="hidden sm:flex items-center gap-1 text-xs font-bold text-[#ffd60a] border border-[#ffd60a]/20 bg-[#ffd60a]/10 rounded-full px-3 py-1">
-                  🪙 {Number(currentUser.coins) || 0}
-                </div>
 
                 {/* Notification Bell */}
                 <div className="relative">

@@ -6,6 +6,7 @@ import { SessionBootstrap } from '@/components/providers/SessionBootstrap';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { MobileNav } from '@/components/layout/MobileNav';
+import { AICoachModal } from '@/components/ui/AICoachModal';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main className="flex-1 pb-20 md:pb-0">{children}</main>
             <Footer />
             <MobileNav />
+            <AICoachModal />
           </SessionBootstrap>
         </TRPCProvider>
       </body>

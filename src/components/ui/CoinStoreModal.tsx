@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Crown, Zap, Sparkles, X, Check, Shield, Star, Award,
-  ArrowRight, Flame, CreditCard, Loader2, Play
+  ArrowRight, Flame, CreditCard, Loader2, Play, QrCode
 } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { playClick, playCoin, playSuccess } from '@/lib/sound';
 import { RewardedAdModal } from '@/components/ads/RewardedAdModal';
+import { DirectPaymentModal } from '@/components/payment/DirectPaymentModal';
+import { getPaymentConfig } from '@/lib/payment-config';
 
 interface CoinStoreModalProps {
   isOpen: boolean;
@@ -24,60 +26,28 @@ const PRO_FEATURES = [
   { icon: '🛡️', title: 'Priority Matchmaking Queue', desc: 'Host pins appear at the top of the campus match feed' },
 ];
 
-const COIN_PACKS = [
-  { id: 'starter_coins', name: 'Starter Stash', coins: 250, price: '$0.99', inr: '₹49', tag: 'STARTER', color: '#00F0FF' },
-  { id: 'challenger_coins', name: 'Challenger Stash', coins: 1000, price: '$2.99', inr: '₹199', tag: 'MOST POPULAR', bonus: '+20% Bonus', color: '#CCFF00' },
-  { id: 'godmode_coins', name: 'Godmode Vault', coins: 5000, price: '$9.99', inr: '₹699', tag: 'BEST VALUE', bonus: '+50% Bonus', color: '#FFD700' },
-];
-
 export function CoinStoreModal({ isOpen, onClose }: CoinStoreModalProps) {
   const { currentUser, addCoins } = useUIStore();
+  const paymentConfig = getPaymentConfig();
+  
   const [activeTab, setActiveTab] = useState<'pro' | 'coins'>('pro');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-  const [purchasing, setPurchasing] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [rewardedAdOpen, setRewardedAdOpen] = useState(false);
+  const [directPaymentPackage, setDirectPaymentPackage] = useState<any | null>(null);
 
-  const handlePurchase = async (packageId: string, coinsAmount: number) => {
+  const COIN_PACKS = [
+    { id: 'starter_coins', name: 'Starter Stash', coins: 250, price: '$0.99', inrAmount: paymentConfig.starterCoinsInr, tag: 'STARTER', color: '#00F0FF' },
+    { id: 'challenger_coins', name: 'Challenger Stash', coins: 1000, price: '$2.99', inrAmount: paymentConfig.challengerCoinsInr, tag: 'MOST POPULAR', bonus: '+20% Bonus', color: '#CCFF00' },
+    { id: 'godmode_coins', name: 'Godmode Vault', coins: 5000, price: '$9.99', inrAmount: paymentConfig.godmodeCoinsInr, tag: 'BEST VALUE', bonus: '+50% Bonus', color: '#FFD700' },
+  ];
+
+  const handleOpenDirectCheckout = (pkg: { id: string; title: string; amountInr: number; coinsAmount: number; isPro: boolean }) => {
     if (!currentUser) {
       window.location.href = '/login';
       return;
     }
     playClick();
-    setPurchasing(packageId);
-
-    try {
-      const res = await fetch('/api/checkout/pro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packageId }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        playSuccess();
-        playCoin();
-        addCoins(coinsAmount);
-
-        try {
-          const { emitCoinEarn } = await import('@/hooks/useCoinEarn');
-          emitCoinEarn({
-            amount: coinsAmount,
-            reason: `Purchased ${packageId.includes('pro') ? 'CourtMate PRO' : 'Coins'}!`,
-            icon: '👑',
-          });
-        } catch {}
-
-        setSuccessMsg(data.message);
-        setTimeout(() => {
-          setSuccessMsg(null);
-          onClose();
-        }, 2000);
-      }
-    } catch {
-    } finally {
-      setPurchasing(null);
-    }
+    setDirectPaymentPackage(pkg);
   };
 
   return (
@@ -146,16 +116,6 @@ export function CoinStoreModal({ isOpen, onClose }: CoinStoreModalProps) {
                 </button>
               </div>
 
-              {successMsg && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-5 p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold text-center flex items-center justify-center gap-2"
-                >
-                  <Check className="w-4 h-4" /> {successMsg}
-                </motion.div>
-              )}
-
               {/* TAB 1: COURTMATE PRO */}
               {activeTab === 'pro' && (
                 <div className="space-y-6 relative z-10">
@@ -195,11 +155,11 @@ export function CoinStoreModal({ isOpen, onClose }: CoinStoreModalProps) {
 
                       <div className="text-right">
                         <div className="text-3xl font-black font-outfit text-[#CCFF00]">
-                          {billingCycle === 'monthly' ? '$3.99' : '$29.99'}
+                          {billingCycle === 'monthly' ? `₹${paymentConfig.proMonthlyInr}` : `₹${paymentConfig.proAnnualInr}`}
                           <span className="text-xs text-[#a0a0b8] font-normal">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
                         </div>
                         <div className="text-[11px] text-[#6b6b80] font-mono">
-                          {billingCycle === 'monthly' ? 'or ₹99/month' : 'or ₹799/year'}
+                          Direct UPI Deposit to Owner
                         </div>
                       </div>
                     </div>
@@ -218,15 +178,16 @@ export function CoinStoreModal({ isOpen, onClose }: CoinStoreModalProps) {
                     </div>
 
                     <button
-                      onClick={() => handlePurchase(billingCycle === 'monthly' ? 'pro_monthly' : 'pro_annual', billingCycle === 'monthly' ? 500 : 2500)}
-                      disabled={Boolean(purchasing)}
+                      onClick={() => handleOpenDirectCheckout({
+                        id: billingCycle === 'monthly' ? 'pro_monthly' : 'pro_annual',
+                        title: billingCycle === 'monthly' ? 'CourtMate PRO (1 Month)' : 'CourtMate PRO (1 Year Pass)',
+                        amountInr: billingCycle === 'monthly' ? paymentConfig.proMonthlyInr : paymentConfig.proAnnualInr,
+                        coinsAmount: billingCycle === 'monthly' ? 500 : 2500,
+                        isPro: true,
+                      })}
                       className="btn-volt w-full py-3.5 flex items-center justify-center gap-2 text-sm shadow-xl font-black"
                     >
-                      {purchasing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <><Crown className="w-4 h-4" /> Unlock CourtMate PRO Now (+{billingCycle === 'monthly' ? '500' : '2,500'} Bonus 🪙)</>
-                      )}
+                      <QrCode className="w-4 h-4" /> Pay via UPI / GPay / PhonePe (+{billingCycle === 'monthly' ? '500' : '2,500'} 🪙 Bonus)
                     </button>
                   </div>
                 </div>
@@ -290,16 +251,21 @@ export function CoinStoreModal({ isOpen, onClose }: CoinStoreModalProps) {
 
                         <div className="mt-6 pt-4 border-t border-white/10">
                           <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-black text-white font-mono">{pack.price}</span>
-                            <span className="text-xs text-[#6b6b80] font-mono">{pack.inr}</span>
+                            <span className="text-sm font-black text-[#CCFF00] font-mono">₹{pack.inrAmount}</span>
+                            <span className="text-xs text-[#6b6b80] font-mono">{pack.price}</span>
                           </div>
 
                           <button
-                            onClick={() => handlePurchase(pack.id, pack.coins)}
-                            disabled={purchasing === pack.id}
+                            onClick={() => handleOpenDirectCheckout({
+                              id: pack.id,
+                              title: pack.name,
+                              amountInr: pack.inrAmount,
+                              coinsAmount: pack.coins,
+                              isPro: false,
+                            })}
                             className="w-full py-2.5 rounded-xl text-xs font-black bg-white/10 hover:bg-[#CCFF00] hover:text-[#040507] text-white border border-white/15 transition-all flex items-center justify-center gap-1 active:scale-95"
                           >
-                            {purchasing === pack.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Claim Coins'}
+                            <QrCode className="w-3.5 h-3.5" /> UPI Pay
                           </button>
                         </div>
                       </div>
@@ -318,6 +284,15 @@ export function CoinStoreModal({ isOpen, onClose }: CoinStoreModalProps) {
         onClose={() => setRewardedAdOpen(false)}
         rewardAmount={50}
       />
+
+      {/* Direct UPI Payment Modal */}
+      {directPaymentPackage && (
+        <DirectPaymentModal
+          isOpen={Boolean(directPaymentPackage)}
+          onClose={() => setDirectPaymentPackage(null)}
+          packageDetails={directPaymentPackage}
+        />
+      )}
     </>
   );
 }

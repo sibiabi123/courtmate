@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useUIStore } from '@/store/uiStore';
 import { AthleteCard } from '@/components/ui/AthleteCard';
 import { SplitDuelModal } from '@/components/ui/SplitDuelModal';
+import { InterHostelCupWidget } from '@/components/features/InterHostelCupWidget';
 import { playClick, playDuel, playSuccess } from '@/lib/sound';
 
 const REGIONS = [
@@ -74,6 +75,7 @@ export default function LeaderboardPage() {
   // Split Duel Modal State
   const [duelModalOpen, setDuelModalOpen] = useState(false);
   const [selectedOpponent, setSelectedOpponent] = useState<any>(null);
+  const [leaderboardMode, setLeaderboardMode] = useState<'athletes' | 'hostels'>('athletes');
 
   const fetchRankings = async () => {
     setLoading(true);
@@ -171,19 +173,51 @@ export default function LeaderboardPage() {
           </p>
         </div>
 
-        {/* ── TOP 3 PODIUM 3D HOLOGRAPHIC CARDS ── */}
-        {users.length >= 3 && !searchQuery && selectedTier === 'All' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-12 items-stretch">
-            {users.slice(0, 3).map((topAthlete, idx) => (
-              <AthleteCard
-                key={topAthlete.id}
-                athlete={topAthlete}
-                rank={idx + 1}
-                onChallenge={() => openDuel(topAthlete)}
-              />
-            ))}
+        {/* ── MODE SELECTOR ── */}
+        <div className="flex justify-center mb-8">
+          <div className="flex p-1.5 rounded-2xl bg-white/5 border border-white/10 max-w-md w-full">
+            <button
+              onClick={() => { playClick(); setLeaderboardMode('athletes'); }}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                leaderboardMode === 'athletes'
+                  ? 'bg-[#CCFF00] text-[#040507] shadow-lg shadow-[#CCFF00]/20'
+                  : 'text-[#a0a0b8] hover:text-white'
+              }`}
+            >
+              👑 Individual Athlete ELO
+            </button>
+            <button
+              onClick={() => { playClick(); setLeaderboardMode('hostels'); }}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                leaderboardMode === 'hostels'
+                  ? 'bg-[#CCFF00] text-[#040507] shadow-lg shadow-[#CCFF00]/20'
+                  : 'text-[#a0a0b8] hover:text-white'
+              }`}
+            >
+              🏆 Inter-Hostel Olympic Cup
+            </button>
           </div>
-        )}
+        </div>
+
+        {leaderboardMode === 'hostels' ? (
+          <div className="mb-12">
+            <InterHostelCupWidget />
+          </div>
+        ) : (
+          <>
+            {/* ── TOP 3 PODIUM 3D HOLOGRAPHIC CARDS ── */}
+            {users.length >= 3 && !searchQuery && selectedTier === 'All' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-12 items-stretch">
+                {users.slice(0, 3).map((topAthlete, idx) => (
+                  <AthleteCard
+                    key={topAthlete.id}
+                    athlete={topAthlete}
+                    rank={idx + 1}
+                    onChallenge={() => openDuel(topAthlete)}
+                  />
+                ))}
+              </div>
+            )}
 
         {/* ── CONTROLS & FILTER BAR ── */}
         <div className="rounded-2xl border border-white/10 bg-[#0A0C10]/90 p-4 sm:p-5 mb-8 shadow-xl backdrop-blur-xl space-y-4">
@@ -341,6 +375,8 @@ export default function LeaderboardPage() {
             </div>
           )}
         </div>
+        </>
+        )}
 
         {/* Split Duel Modal */}
         {selectedOpponent && (

@@ -7,32 +7,32 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore } from '@/store/uiStore';
 import {
   Home, Rss, Trophy, BarChart3, User, LogOut, LogIn, Menu, X, Shield,
-  Swords, Bell, Settings, Volume2, VolumeX, Globe, Crown, Sparkles,
-  ChevronDown, Search, Check, Building2
+  Swords, Bell, Settings, Volume2, VolumeX, Crown, Sparkles,
+  Gamepad2, Check
 } from 'lucide-react';
 import { LiveTicker } from '@/components/ui/LiveTicker';
 import { CoinStoreModal } from '@/components/ui/CoinStoreModal';
 import { playClick, toggleSound, isSoundMuted } from '@/lib/sound';
-import { GLOBAL_COLLEGES, College, getCollegeById } from '@/data/colleges';
+import { getActiveCampusConfig } from '@/lib/campus-config';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home', icon: Home },
-  { href: '/feed', label: 'Campus Feed', icon: Rss },
-  { href: '/challenges', label: 'Duels', icon: Swords },
-  { href: '/rivalry', label: 'Rivalry 🏛️', icon: Globe },
+  { href: '/feed', label: 'Match Feed', icon: Rss },
+  { href: '/challenges', label: '1v1 Duels', icon: Swords },
   { href: '/tournaments', label: 'Tournaments', icon: Trophy },
   { href: '/leaderboard', label: 'Rankings', icon: BarChart3 },
+  { href: '/arcade', label: 'Arcade', icon: Gamepad2 },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, isAuthenticated, logout, setCurrentUser } = useUIStore();
+  const campusConfig = getActiveCampusConfig();
   
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
-  const [campusOpen, setCampusOpen] = useState(false);
   const [coinStoreOpen, setCoinStoreOpen] = useState(false);
   
   const [scrolled, setScrolled] = useState(false);
@@ -40,9 +40,6 @@ export function Navbar() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  
-  const [activeCollege, setActiveCollege] = useState<College>(GLOBAL_COLLEGES[0]);
-  const [campusSearch, setCampusSearch] = useState('');
 
   useEffect(() => {
     setSoundEnabled(!isSoundMuted());
@@ -65,23 +62,16 @@ export function Navbar() {
     return () => clearInterval(interval);
   }, []);
 
-  // Sync fresh user data from server on mount
   useEffect(() => {
     if (!isAuthenticated) return;
     fetch('/api/auth/me')
       .then(r => r.json())
       .then(d => {
-        if (d.success && d.user) {
-          setCurrentUser(d.user);
-          if (d.user.collegeId) {
-            setActiveCollege(getCollegeById(d.user.collegeId));
-          }
-        }
+        if (d.success && d.user) setCurrentUser(d.user);
       })
       .catch(() => {});
-  }, [isAuthenticated]);
+  }, [isAuthenticated, setCurrentUser]);
 
-  // Fetch notifications
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchNotifs = () => {
@@ -115,12 +105,6 @@ export function Navbar() {
     setBellOpen(false);
   };
 
-  const filteredColleges = GLOBAL_COLLEGES.filter(
-    c => c.name.toLowerCase().includes(campusSearch.toLowerCase()) ||
-         c.shortName.toLowerCase().includes(campusSearch.toLowerCase()) ||
-         c.country.toLowerCase().includes(campusSearch.toLowerCase())
-  );
-
   const initials = currentUser?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'GU';
 
   return (
@@ -129,12 +113,12 @@ export function Navbar() {
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'border-b border-white/8' : 'border-b border-transparent'}`}
         style={{ background: scrolled ? 'rgba(4,5,7,0.96)' : 'rgba(4,5,7,0.85)', backdropFilter: 'blur(24px)' }}
       >
-        {/* Top Marquee Ticker */}
+        {/* Top Live Announcement Ticker */}
         <LiveTicker />
 
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           
-          {/* Logo & Campus Selector */}
+          {/* Logo & Campus Identity */}
           <div className="flex items-center gap-3">
             <Link
               href="/"
@@ -152,76 +136,10 @@ export function Navbar() {
               </span>
             </Link>
 
-            {/* Global Campus Switcher Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  playClick();
-                  setCampusOpen(!campusOpen);
-                  setProfileOpen(false);
-                  setBellOpen(false);
-                }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold transition-all"
-              >
-                <span>{activeCollege.emblem}</span>
-                <span className="text-white hidden md:inline truncate max-w-[110px]">{activeCollege.shortName}</span>
-                <ChevronDown className="w-3 h-3 text-[#CCFF00]" />
-              </button>
-
-              <AnimatePresence>
-                {campusOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="absolute left-0 top-12 w-80 rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden bg-[#0A0C10] p-3"
-                  >
-                    <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
-                      <span className="text-xs font-black uppercase text-white flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-[#CCFF00]" /> Switch Campus Hub
-                      </span>
-                      <button onClick={() => setCampusOpen(false)} className="text-[#6b6b80] hover:text-white">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    <div className="relative mb-2">
-                      <Search className="w-3.5 h-3.5 text-[#6b6b80] absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Search universities..."
-                        value={campusSearch}
-                        onChange={e => setCampusSearch(e.target.value)}
-                        className="w-full rounded-xl bg-white/5 border border-white/10 pl-8 pr-3 py-1.5 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
-                      />
-                    </div>
-
-                    <div className="max-h-60 overflow-y-auto space-y-1">
-                      {filteredColleges.map(c => (
-                        <button
-                          key={c.id}
-                          onClick={() => {
-                            playClick();
-                            setActiveCollege(c);
-                            setCampusOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between transition-all ${
-                            activeCollege.id === c.id
-                              ? 'bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30'
-                              : 'text-white/80 hover:bg-white/5'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 truncate">
-                            <span>{c.emblem}</span>
-                            <span className="truncate">{c.name}</span>
-                          </div>
-                          {activeCollege.id === c.id && <Check className="w-3.5 h-3.5 text-[#CCFF00] shrink-0" />}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            {/* Campus Pill */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-xs font-bold">
+              <span>{campusConfig.emblem}</span>
+              <span className="text-white font-mono">{campusConfig.shortName}</span>
             </div>
           </div>
 
@@ -251,7 +169,7 @@ export function Navbar() {
           {/* Right Action Section */}
           <div className="flex items-center gap-2">
             
-            {/* Audio FX Toggle Button */}
+            {/* Audio Toggle */}
             <button
               onClick={handleSoundToggle}
               title={soundEnabled ? 'Tactile Sound: ON' : 'Tactile Sound: OFF'}
@@ -264,11 +182,11 @@ export function Navbar() {
             {onlineCount > 0 && (
               <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-[#CCFF00] border border-[#CCFF00]/20 bg-[#CCFF00]/10 rounded-full px-2.5 py-1 stat-mono font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00] animate-pulse" />
-                {onlineCount} LIVE
+                {onlineCount} ATHLETES ONLINE
               </div>
             )}
 
-            {/* ── COIN STORE & PRO TRIGGER BUTTON ── */}
+            {/* Direct Store & PRO Button */}
             <button
               onClick={() => {
                 playClick();
@@ -282,10 +200,10 @@ export function Navbar() {
 
             {isAuthenticated && currentUser ? (
               <>
-                {/* Notification Bell */}
+                {/* Bell */}
                 <div className="relative">
                   <button
-                    onClick={() => { playClick(); setBellOpen(!bellOpen); setProfileOpen(false); setCampusOpen(false); }}
+                    onClick={() => { playClick(); setBellOpen(!bellOpen); setProfileOpen(false); }}
                     className="w-8 h-8 rounded-xl flex items-center justify-center text-[#a0a0b8] hover:text-white transition-all relative border border-white/5 tactile-press"
                   >
                     <Bell className="w-3.5 h-3.5" />
@@ -325,10 +243,10 @@ export function Navbar() {
                   </AnimatePresence>
                 </div>
 
-                {/* Profile Avatar */}
+                {/* Avatar */}
                 <div className="relative">
                   <button
-                    onClick={() => { playClick(); setProfileOpen(!profileOpen); setBellOpen(false); setCampusOpen(false); }}
+                    onClick={() => { playClick(); setProfileOpen(!profileOpen); setBellOpen(false); }}
                     className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black text-[#040507] transition-all hover:scale-105 overflow-hidden tactile-press"
                     style={{ background: 'linear-gradient(135deg, #CCFF00, #00F0FF)' }}
                   >
@@ -402,7 +320,7 @@ export function Navbar() {
               </div>
             )}
 
-            {/* Mobile Menu Hamburger */}
+            {/* Mobile Hamburger */}
             <button
               onClick={() => { playClick(); setMobileOpen(!mobileOpen); }}
               className="lg:hidden w-8 h-8 rounded-xl flex items-center justify-center text-white bg-white/5 border border-white/10"
@@ -444,7 +362,7 @@ export function Navbar() {
                 }}
                 className="w-full btn-volt py-2.5 text-xs font-black flex items-center justify-center gap-1.5"
               >
-                <Crown className="w-3.5 h-3.5" /> CourtMate PRO Store
+                <Crown className="w-3.5 h-3.5" /> CourtMate Store & PRO Pass
               </button>
             </motion.div>
           )}

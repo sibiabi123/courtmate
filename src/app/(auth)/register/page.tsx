@@ -4,9 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, UserPlus, AlertCircle, CheckCircle2, Search, Building2, MapPin, GraduationCap, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, UserPlus, AlertCircle, CheckCircle2, MapPin, GraduationCap, Sparkles } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
-import { GLOBAL_COLLEGES, College } from '@/data/colleges';
+import { getActiveCampusConfig } from '@/lib/campus-config';
 
 function getPasswordStrength(pwd: string): { label: string; color: string; pct: number } {
   if (pwd.length === 0) return { label: '', color: '#333', pct: 0 };
@@ -24,18 +24,14 @@ function getPasswordStrength(pwd: string): { label: string; color: string; pct: 
 export default function RegisterPage() {
   const router = useRouter();
   const { setCurrentUser } = useUIStore();
-  
-  const [selectedCollege, setSelectedCollege] = useState<College>(GLOBAL_COLLEGES[0]);
-  const [customCollegeName, setCustomCollegeName] = useState('');
-  const [isCustomCollege, setIsCustomCollege] = useState(false);
-  const [collegeSearch, setCollegeSearch] = useState('');
+  const campusConfig = getActiveCampusConfig();
   
   const [form, setForm] = useState({
     name: '',
     email: '',
     password: '',
     confirm: '',
-    hostel: GLOBAL_COLLEGES[0].residences[0] || 'Day Scholar',
+    hostel: campusConfig.hostels[0]?.name || 'MH-A Block',
   });
 
   const [showPwd, setShowPwd] = useState(false);
@@ -46,19 +42,7 @@ export default function RegisterPage() {
   const pwdStrength = getPasswordStrength(form.password);
   const emailValid = /^[^@]+@[^@]+\.[^@]+$/.test(form.email);
   const emailDomain = form.email.split('@')[1]?.toLowerCase();
-  const isVerifiedAcademic = selectedCollege.verifiedDomains?.some(d => emailDomain?.endsWith(d)) || emailDomain?.endsWith('.edu') || emailDomain?.endsWith('.ac.in');
-
-  const filteredColleges = GLOBAL_COLLEGES.filter(
-    c => c.name.toLowerCase().includes(collegeSearch.toLowerCase()) ||
-         c.shortName.toLowerCase().includes(collegeSearch.toLowerCase()) ||
-         c.country.toLowerCase().includes(collegeSearch.toLowerCase())
-  );
-
-  const handleCollegeChange = (c: College) => {
-    setSelectedCollege(c);
-    setIsCustomCollege(false);
-    setForm(prev => ({ ...prev, hostel: c.residences[0] || 'Day Scholar / Off-Campus' }));
-  };
+  const isVerifiedAcademic = emailDomain?.includes('vit') || emailDomain?.endsWith('.ac.in') || emailDomain?.endsWith('.edu');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,13 +50,10 @@ export default function RegisterPage() {
     if (!emailValid) { setError('Please enter a valid email address.'); return; }
     if (form.password !== form.confirm) { setError('Passwords do not match.'); return; }
     if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
-    if (!agreed) { setError('Please accept the terms to continue.'); return; }
+    if (!agreed) { setError('Please accept the Fair Play guidelines.'); return; }
     setLoading(true);
 
     try {
-      const collegeId = isCustomCollege ? 'custom-' + customCollegeName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : selectedCollege.id;
-      const collegeName = isCustomCollege ? customCollegeName : selectedCollege.name;
-
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,8 +61,8 @@ export default function RegisterPage() {
           name: form.name,
           email: form.email,
           password: form.password,
-          collegeId,
-          collegeName,
+          collegeId: 'vit-vellore',
+          collegeName: campusConfig.collegeName,
           hostel: form.hostel,
         }),
       });
@@ -102,9 +83,10 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-[#040507] flex">
-      {/* Left: Global Collegiate Hero */}
+      {/* Left: Collegiate Hero Showcase */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-12 bg-[#08090C] border-r border-white/10">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#CCFF00_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+        
         <div className="relative z-10">
           <Link href="/" className="inline-flex items-center gap-2 mb-8">
             <div className="w-10 h-10 rounded-xl bg-[#CCFF00] flex items-center justify-center text-[#040507] font-black text-sm">
@@ -113,32 +95,32 @@ export default function RegisterPage() {
             <span className="text-2xl font-black font-outfit text-white">Court<span className="text-[#CCFF00]">Mate</span></span>
           </Link>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/30 mb-4">
-            <GraduationCap className="w-4 h-4" /> Global Collegiate Athletic Network
+            <span>{campusConfig.emblem}</span> {campusConfig.shortName} Athletic Network
           </div>
           <h2 className="text-4xl font-black font-outfit text-white leading-tight mb-4">
-            Compete, Duel & Dominate Within <span className="text-[#CCFF00]">Your College</span> & Worldwide.
+            Host Games, Stake 1v1 Duels & Dominate the <span className="text-[#CCFF00]">Hostel Cup</span>.
           </h2>
           <p className="text-[#a0a0b8] text-sm leading-relaxed max-w-md">
-            Join 200+ universities worldwide. Host match lobbies on campus courts, stake ELO in 1v1 duels, and represent your university in global derbies.
+            Join thousands of campus athletes. Coordinate pickup matches across campus sports arenas, claim your 3D sports card, and compete for hostel supremacy.
           </p>
         </div>
 
         {/* Live campus chips */}
         <div className="relative z-10 pt-8 border-t border-white/10">
-          <p className="text-xs font-black uppercase tracking-wider text-[#6b6b80] mb-3">Featured Campuses</p>
+          <p className="text-xs font-black uppercase tracking-wider text-[#6b6b80] mb-3">Campus Facilities</p>
           <div className="flex flex-wrap gap-2">
-            {GLOBAL_COLLEGES.slice(0, 6).map(c => (
-              <span key={c.id} className="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 border border-white/10 text-white flex items-center gap-1.5">
-                <span>{c.emblem}</span> {c.shortName}
+            {campusConfig.venues.slice(0, 5).map(v => (
+              <span key={v.id} className="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 border border-white/10 text-white flex items-center gap-1.5">
+                <MapPin className="w-3 h-3 text-[#CCFF00]" /> {v.name.split('(')[0]}
               </span>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Right: Register Form */}
+      {/* Right: Clean Registration Form */}
       <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg py-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md py-8">
           
           <div className="lg:hidden text-center mb-6">
             <Link href="/" className="inline-flex items-center gap-2">
@@ -151,6 +133,9 @@ export default function RegisterPage() {
 
           <div className="rounded-3xl border border-white/10 bg-[#0A0C10] p-8 shadow-2xl">
             <div className="mb-6">
+              <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[#CCFF00] bg-[#CCFF00]/10 px-2.5 py-0.5 rounded-full border border-[#CCFF00]/20 mb-2">
+                <span>{campusConfig.emblem}</span> {campusConfig.shortName}
+              </div>
               <h1 className="text-2xl font-black font-outfit text-white">Create Athlete Profile</h1>
               <p className="text-xs text-[#a0a0b8] mt-1">Get your 3D card and 100 welcome coins 🪙</p>
             </div>
@@ -164,82 +149,13 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               
-              {/* College Selection */}
-              <div>
-                <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">
-                  Select University / College
-                </label>
-                
-                {!isCustomCollege ? (
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <Search className="w-4 h-4 text-[#6b6b80] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Search MIT, Stanford, IIT, Oxford, VIT..."
-                        value={collegeSearch}
-                        onChange={e => setCollegeSearch(e.target.value)}
-                        className="w-full rounded-xl bg-white/5 border border-white/10 pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
-                      />
-                    </div>
-
-                    <div className="max-h-36 overflow-y-auto space-y-1 border border-white/10 rounded-xl p-1.5 bg-[#08090C]">
-                      {filteredColleges.map(c => (
-                        <button
-                          type="button"
-                          key={c.id}
-                          onClick={() => handleCollegeChange(c)}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-all ${
-                            selectedCollege.id === c.id
-                              ? 'bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30'
-                              : 'text-white/80 hover:bg-white/5'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 truncate">
-                            <span>{c.emblem}</span>
-                            <span className="truncate">{c.name}</span>
-                          </div>
-                          <span className="text-[10px] text-[#6b6b80] shrink-0">{c.city}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomCollege(true)}
-                      className="text-[11px] text-[#00F0FF] hover:underline font-bold"
-                    >
-                      + My university is not listed
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter Full University Name..."
-                      value={customCollegeName}
-                      onChange={e => setCustomCollegeName(e.target.value)}
-                      className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsCustomCollege(false)}
-                      className="text-[11px] text-[#CCFF00] hover:underline font-bold"
-                    >
-                      ← Pick from verified university list
-                    </button>
-                  </div>
-                )}
-              </div>
-
               {/* Name */}
               <div>
-                <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">Full Name</label>
+                <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-1.5">Full Name</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Alex Kumar"
+                  placeholder="e.g. Arjun Sharma"
                   value={form.name}
                   onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
@@ -248,36 +164,36 @@ export default function RegisterPage() {
 
               {/* Email with Verified Badge Preview */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-[#a0a0b8] uppercase tracking-wider">Email Address</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-[#a0a0b8] uppercase tracking-wider">Campus / Personal Email</label>
                   {isVerifiedAcademic && (
                     <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                      <GraduationCap className="w-3 h-3" /> Verified Student Domain
+                      <GraduationCap className="w-3 h-3" /> Verified Student
                     </span>
                   )}
                 </div>
                 <input
                   type="email"
                   required
-                  placeholder="student@university.edu or your personal email"
+                  placeholder="name.2026@vitstudent.ac.in or personal email"
                   value={form.email}
                   onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
                   className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
                 />
               </div>
 
-              {/* Campus Residence / Dorm */}
+              {/* Hostel / Residence */}
               <div>
-                <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">
-                  Hostel / Dorm / Residence
+                <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-1.5">
+                  Hostel Block / Residence
                 </label>
                 <select
                   value={form.hostel}
                   onChange={e => setForm(prev => ({ ...prev, hostel: e.target.value }))}
                   className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white focus:outline-none focus:border-[#CCFF00]"
                 >
-                  {(selectedCollege.residences || ['Day Scholar / Off-Campus']).map(r => (
-                    <option key={r} value={r} className="bg-[#0A0C10]">{r}</option>
+                  {campusConfig.hostels.map(h => (
+                    <option key={h.id} value={h.name} className="bg-[#0A0C10]">{h.name}</option>
                   ))}
                 </select>
               </div>
@@ -285,7 +201,7 @@ export default function RegisterPage() {
               {/* Password Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">Password</label>
+                  <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-1.5">Password</label>
                   <div className="relative">
                     <input
                       type={showPwd ? 'text' : 'password'}
@@ -306,7 +222,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">Confirm</label>
+                  <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-1.5">Confirm</label>
                   <input
                     type={showPwd ? 'text' : 'password'}
                     required
@@ -352,7 +268,7 @@ export default function RegisterPage() {
                 className="btn-volt w-full flex items-center justify-center gap-2 py-3.5 mt-4"
               >
                 {loading ? <span className="w-4 h-4 border-2 border-[#040507]/40 border-t-[#040507] rounded-full animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                Create Collegiate Athlete Card (+100 🪙)
+                Create Athlete Card (+100 🪙)
               </button>
             </form>
 

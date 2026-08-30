@@ -1,125 +1,126 @@
 @import 'tailwindcss';
 
 /* ============================================
-   VIT-G-Hub Design System
+   CourtMate — Kinetic Athletic Precision
+   Design System v3.0
+   Inspired by: Nike Pro × Strava × FACEIT × Linear
    ============================================ */
 
-/* Base styles */
-html {
-  scroll-behavior: smooth;
-}
-
-html.lenis, html.lenis body {
-  height: auto;
-}
-
-.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-
-.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-
-.lenis-stopped {
-  overflow: hidden;
-}
-
-.lenis-scrolling iframe {
-  pointer-events: none;
-}
+/* ── Base ─────────────────────────────────── */
+html { scroll-behavior: smooth; }
+html.lenis, html.lenis body { height: auto; }
+.lenis-smooth { scroll-behavior: auto !important; }
+.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis-stopped { overflow: hidden; }
+.lenis-scrolling iframe { pointer-events: none; }
 
 body {
-  background-color: #0a0a0f;
+  background-color: #040507;
   color: #ffffff;
   min-height: 100vh;
   overflow-x: hidden;
+  font-feature-settings: 'cv11', 'ss01';
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #050508;
-}
-::-webkit-scrollbar-thumb {
-  background: #25253d;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #7b2ff7;
+/* ── Custom Scrollbar ─────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #030305; }
+::-webkit-scrollbar-thumb { background: #1a1d26; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #ccff00; }
+
+/* ── CSS Design Tokens ────────────────────── */
+:root {
+  /* Surfaces */
+  --void: #040507;
+  --void-deep: #030305;
+  --surface: #0A0C10;
+  --surface-2: #12151C;
+  --surface-3: #191d28;
+  --overlay: #1e2230;
+
+  /* Acid Volt Primary */
+  --volt: #CCFF00;
+  --volt-dim: rgba(204, 255, 0, 0.15);
+  --volt-border: rgba(204, 255, 0, 0.35);
+  --volt-glow: rgba(204, 255, 0, 0.5);
+
+  /* Hyper Cyan Secondary */
+  --cyan: #00F0FF;
+  --cyan-dim: rgba(0, 240, 255, 0.12);
+  --cyan-border: rgba(0, 240, 255, 0.3);
+
+  /* Combat Crimson */
+  --crimson: #FF2A55;
+  --crimson-dim: rgba(255, 42, 85, 0.12);
+
+  /* Champion Gold */
+  --gold: #FFD700;
+  --gold-dim: rgba(255, 215, 0, 0.15);
+
+  /* Borders */
+  --border-base: rgba(255, 255, 255, 0.07);
+  --border-active: rgba(204, 255, 0, 0.4);
+  --border-subtle: rgba(255, 255, 255, 0.04);
+
+  /* Typography */
+  --font-display: 'Outfit', 'Syne', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Geist Mono', 'Fira Code', ui-monospace, monospace;
 }
 
-/* ============================================
-   Glassmorphism Utilities
-   ============================================ */
+/* ── Glassmorphism System ─────────────────── */
 .glass {
-  background: rgba(17, 17, 24, 0.7);
+  background: rgba(10, 12, 16, 0.75);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-base);
 }
 .glass-light {
-  background: rgba(26, 26, 46, 0.5);
+  background: rgba(18, 21, 28, 0.55);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
 }
 .glass-strong {
-  background: rgba(17, 17, 24, 0.92);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(4, 5, 7, 0.92);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid var(--border-base);
+}
+.glass-volt {
+  background: rgba(10, 12, 16, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--volt-border);
+  box-shadow: 0 0 20px var(--volt-dim), inset 0 0 20px rgba(204, 255, 0, 0.03);
 }
 
-/* ============================================
-   Neon Text Glow Effects
-   ============================================ */
-.neon-text-purple {
-  text-shadow: 0 0 10px rgba(123, 47, 247, 0.8),
-    0 0 40px rgba(123, 47, 247, 0.4),
-    0 0 80px rgba(123, 47, 247, 0.2);
+/* ── Kinetic Surface Cards ────────────────── */
+.kinetic-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border-base);
+  border-radius: 16px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
-.neon-text-cyan {
-  text-shadow: 0 0 10px rgba(0, 245, 212, 0.8),
-    0 0 40px rgba(0, 245, 212, 0.4),
-    0 0 80px rgba(0, 245, 212, 0.2);
+.kinetic-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(ellipse at 50% -20%, rgba(204, 255, 0, 0.08) 0%, transparent 70%);
 }
-.neon-text-pink {
-  text-shadow: 0 0 10px rgba(255, 0, 110, 0.8),
-    0 0 40px rgba(255, 0, 110, 0.4),
-    0 0 80px rgba(255, 0, 110, 0.2);
+.kinetic-card:hover {
+  border-color: var(--volt-border);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(204, 255, 0, 0.15);
 }
-.neon-text-gold {
-  text-shadow: 0 0 10px rgba(255, 214, 10, 0.8),
-    0 0 40px rgba(255, 214, 10, 0.4),
-    0 0 80px rgba(255, 214, 10, 0.2);
-}
+.kinetic-card:hover::before { opacity: 1; }
 
-/* ============================================
-   Neon Border Effects
-   ============================================ */
-.neon-border-purple {
-  box-shadow: 0 0 5px rgba(123, 47, 247, 0.5),
-    inset 0 0 5px rgba(123, 47, 247, 0.1);
-  border-color: rgba(123, 47, 247, 0.5);
-}
-.neon-border-cyan {
-  box-shadow: 0 0 5px rgba(0, 245, 212, 0.5),
-    inset 0 0 5px rgba(0, 245, 212, 0.1);
-  border-color: rgba(0, 245, 212, 0.5);
-}
-.neon-border-pink {
-  box-shadow: 0 0 5px rgba(255, 0, 110, 0.5),
-    inset 0 0 5px rgba(255, 0, 110, 0.1);
-  border-color: rgba(255, 0, 110, 0.5);
-}
-
-/* ============================================
-   Gradient Text
-   ============================================ */
+/* ── Gradient Text ────────────────────────── */
 .gradient-text {
   background: linear-gradient(135deg, #7b2ff7 0%, #00f5d4 50%, #ff006e 100%);
   -webkit-background-clip: text;
@@ -132,110 +133,287 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+.gradient-text-volt {
+  background: linear-gradient(90deg, #CCFF00, #00F0FF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 .gradient-text-gold {
-  background: linear-gradient(90deg, #ffd60a, #f59e0b);
+  background: linear-gradient(90deg, #FFD700, #f59e0b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* ============================================
-   Interactive Effects
-   ============================================ */
-.card-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* ── Neon Glow Text ───────────────────────── */
+.neon-text-volt {
+  text-shadow: 0 0 8px rgba(204, 255, 0, 0.9), 0 0 30px rgba(204, 255, 0, 0.5), 0 0 60px rgba(204, 255, 0, 0.2);
 }
-.card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 0 30px rgba(123, 47, 247, 0.3);
+.neon-text-cyan {
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.9), 0 0 30px rgba(0, 240, 255, 0.5), 0 0 60px rgba(0, 240, 255, 0.2);
 }
-
-.glow-on-hover {
-  transition: box-shadow 0.3s ease;
+.neon-text-purple {
+  text-shadow: 0 0 8px rgba(123, 47, 247, 0.9), 0 0 30px rgba(123, 47, 247, 0.5), 0 0 60px rgba(123, 47, 247, 0.2);
 }
-.glow-on-hover:hover {
-  box-shadow: 0 0 20px rgba(0, 245, 212, 0.4);
+.neon-text-gold {
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.9), 0 0 30px rgba(255, 215, 0, 0.5), 0 0 60px rgba(255, 215, 0, 0.2);
 }
 
-/* ============================================
-   Animated Gradient Background
-   ============================================ */
+/* ── Neon Borders ─────────────────────────── */
+.neon-border-volt {
+  border-color: var(--volt-border);
+  box-shadow: 0 0 8px var(--volt-dim), 0 0 20px rgba(204, 255, 0, 0.08), inset 0 0 8px rgba(204, 255, 0, 0.04);
+}
+.neon-border-cyan {
+  border-color: var(--cyan-border);
+  box-shadow: 0 0 8px var(--cyan-dim), inset 0 0 8px rgba(0, 240, 255, 0.04);
+}
+.neon-border-purple {
+  box-shadow: 0 0 8px rgba(123, 47, 247, 0.5), inset 0 0 8px rgba(123, 47, 247, 0.1);
+  border-color: rgba(123, 47, 247, 0.5);
+}
+
+/* ── Holographic Foil Sheens ──────────────── */
+.foil-champion {
+  position: relative;
+  overflow: hidden;
+}
+.foil-champion::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    transparent 20%,
+    rgba(255, 215, 0, 0.12) 35%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(204, 255, 0, 0.1) 55%,
+    transparent 70%
+  );
+  background-size: 300% 300%;
+  animation: foil-shift 4s ease-in-out infinite;
+  pointer-events: none;
+}
+.foil-diamond::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    transparent 20%,
+    rgba(0, 240, 255, 0.1) 35%,
+    rgba(255, 255, 255, 0.06) 45%,
+    rgba(100, 180, 255, 0.08) 55%,
+    transparent 70%
+  );
+  background-size: 300% 300%;
+  animation: foil-shift 5s ease-in-out infinite;
+  pointer-events: none;
+}
+.foil-platinum::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    transparent 20%,
+    rgba(160, 160, 200, 0.1) 35%,
+    rgba(255, 255, 255, 0.05) 45%,
+    rgba(204, 255, 0, 0.06) 55%,
+    transparent 70%
+  );
+  background-size: 300% 300%;
+  animation: foil-shift 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Tactical Press Button ────────────────── */
+.tactile-press {
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+.tactile-press:active {
+  transform: scale(0.96) translateY(1px);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+
+/* ── Volt CTA Button ──────────────────────── */
+.btn-volt {
+  background: linear-gradient(135deg, #CCFF00, #a3cc00);
+  color: #040507;
+  font-weight: 700;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 20px rgba(204, 255, 0, 0.3);
+}
+.btn-volt:hover {
+  box-shadow: 0 0 35px rgba(204, 255, 0, 0.5), 0 0 8px rgba(204, 255, 0, 0.8);
+  transform: translateY(-1px);
+}
+.btn-volt:active { transform: scale(0.97) translateY(0); }
+
+/* ── Broadcast Ticker ─────────────────────── */
+.ticker-scroll {
+  animation: ticker 40s linear infinite;
+  will-change: transform;
+}
+.ticker-scroll:hover { animation-play-state: paused; }
+
+/* ── Court Watermarks ─────────────────────── */
+.court-watermark {
+  position: relative;
+}
+.court-watermark::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ── Data / Mono Stats ────────────────────── */
+.stat-mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Animated Gradient Background ─────────── */
 .animated-gradient {
-  background: linear-gradient(-45deg, #7b2ff7, #00f5d4, #ff006e, #ffd60a);
+  background: linear-gradient(-45deg, #7b2ff7, #00f5d4, #CCFF00, #FF2A55);
   background-size: 400% 400%;
-  animation: gradient-shift 15s ease infinite;
+  animation: gradient-shift 12s ease infinite;
 }
 
+/* ── Sport Tier Badge ─────────────────────── */
+.tier-champion { background: linear-gradient(135deg, #FFD700, #f59e0b); color: #040507; }
+.tier-diamond  { background: linear-gradient(135deg, #00F0FF, #0080ff); color: #040507; }
+.tier-platinum { background: linear-gradient(135deg, #CCFF00, #00F0FF); color: #040507; }
+.tier-gold     { background: linear-gradient(135deg, #FFD700, #ff9500); color: #040507; }
+.tier-silver   { background: linear-gradient(135deg, #c0c0c0, #888888); color: #040507; }
+.tier-bronze   { background: linear-gradient(135deg, #cd7f32, #8B4513); color: #fff; }
+
+/* ── Skill Bar ────────────────────────────── */
+.skill-bar-fill {
+  background: linear-gradient(90deg, var(--volt), var(--cyan));
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Hold to Confirm Ring ─────────────────── */
+.hold-ring {
+  stroke-dasharray: 220;
+  stroke-dashoffset: 220;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.05s linear;
+}
+
+/* ── Keyframe Animations ──────────────────── */
 @keyframes gradient-shift {
   0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  50%       { background-position: 100% 50%; }
 }
-
-/* ============================================
-   Custom Animations
-   ============================================ */
+@keyframes foil-shift {
+  0%, 100% { background-position: 0% 0%; }
+  50%       { background-position: 100% 100%; }
+}
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
+  50%       { transform: translateY(-16px); }
+}
+@keyframes glow-pulse-volt {
+  0%   { box-shadow: 0 0 10px var(--volt-dim); }
+  100% { box-shadow: 0 0 30px var(--volt-glow), 0 0 60px var(--volt-dim); }
 }
 @keyframes glow-pulse {
-  0% { box-shadow: 0 0 5px rgba(123, 47, 247, 0.5), 0 0 20px rgba(123, 47, 247, 0.2); }
+  0%   { box-shadow: 0 0 5px rgba(123, 47, 247, 0.5), 0 0 20px rgba(123, 47, 247, 0.2); }
   100% { box-shadow: 0 0 20px rgba(123, 47, 247, 0.8), 0 0 60px rgba(123, 47, 247, 0.4); }
 }
 @keyframes slide-up {
-  0% { opacity: 0; transform: translateY(30px); }
+  0%   { opacity: 0; transform: translateY(30px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 @keyframes fade-in {
-  0% { opacity: 0; }
+  0%   { opacity: 0; }
   100% { opacity: 1; }
 }
 @keyframes scale-in {
-  0% { opacity: 0; transform: scale(0.9); }
+  0%   { opacity: 0; transform: scale(0.9); }
   100% { opacity: 1; transform: scale(1); }
 }
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
+  0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 @keyframes pulse-neon {
   0%, 100% { opacity: 1; filter: brightness(1); }
-  50% { opacity: 0.8; filter: brightness(1.2); }
-}
-@keyframes ticker {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  50%       { opacity: 0.8; filter: brightness(1.3); }
 }
 @keyframes bounce-gentle {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes radar-ping {
+  0%   { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
 }
 
-.animate-float { animation: float 6s ease-in-out infinite; }
-.animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite alternate; }
-.animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
-.animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
-.animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
-.animate-shimmer { animation: shimmer 2s linear infinite; }
-.animate-pulse-neon { animation: pulse-neon 2s ease-in-out infinite; }
-.animate-ticker { animation: ticker 30s linear infinite; }
-.animate-bounce-gentle { animation: bounce-gentle 2s ease-in-out infinite; }
+/* ── Animation Utilities ──────────────────── */
+.animate-float          { animation: float 6s ease-in-out infinite; }
+.animate-glow-pulse     { animation: glow-pulse 2s ease-in-out infinite alternate; }
+.animate-glow-volt      { animation: glow-pulse-volt 2s ease-in-out infinite alternate; }
+.animate-slide-up       { animation: slide-up 0.5s ease-out forwards; }
+.animate-fade-in        { animation: fade-in 0.5s ease-out forwards; }
+.animate-scale-in       { animation: scale-in 0.3s ease-out forwards; }
+.animate-shimmer        { animation: shimmer 2s linear infinite; }
+.animate-pulse-neon     { animation: pulse-neon 2s ease-in-out infinite; }
+.animate-bounce-gentle  { animation: bounce-gentle 2s ease-in-out infinite; }
+.animate-spin-slow      { animation: spin-slow 8s linear infinite; }
+.animate-radar-ping     { animation: radar-ping 1.5s ease-out infinite; }
 
-/* ============================================
-   Selection & Focus
-   ============================================ */
+/* ── Selection & Focus ────────────────────── */
 ::selection {
-  background: rgba(123, 47, 247, 0.4);
-  color: white;
+  background: rgba(204, 255, 0, 0.25);
+  color: #040507;
 }
 *:focus-visible {
-  outline: 2px solid #00f5d4;
+  outline: 2px solid #CCFF00;
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
-/* Loading skeleton */
+/* ── Loading Skeleton ─────────────────────── */
 .skeleton {
-  background: linear-gradient(90deg, #111118 25%, #1a1a2e 50%, #111118 75%);
+  background: linear-gradient(90deg, #0A0C10 25%, #12151C 50%, #0A0C10 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+/* Respect motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-glow-pulse,
+  .animate-glow-volt,
+  .ticker-scroll,
+  .foil-champion::after,
+  .foil-diamond::after,
+  .foil-platinum::after {
+    animation: none;
+  }
+  .kinetic-card:hover {
+    transform: none;
+  }
 }

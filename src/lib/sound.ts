@@ -1,145 +1,194 @@
-// Web Audio API pure synthesizer for zero-dependency cyberpunk sound effects
+/**
+ * CourtMate — Procedural WebAudio Sound Engine
+ * Zero external file assets. All sounds synthesized via Web Audio API.
+ * 100% SSR-safe for Next.js static prerendering.
+ */
 
-class SoundEngine {
-  private ctx: AudioContext | null = null;
-  private muted: boolean = false;
+let audioCtx: AudioContext | null = null;
 
-  constructor() {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('courtmate-sound-muted');
-      this.muted = stored === 'true';
-    }
-  }
+function isClient(): boolean {
+  return typeof window !== 'undefined';
+}
 
-  private initCtx() {
-    if (!this.ctx && typeof window !== 'undefined') {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        this.ctx = new AudioCtx();
+function getCtx(): AudioContext | null {
+  if (!isClient()) return null;
+  try {
+    if (!audioCtx) {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtxClass) {
+        audioCtx = new AudioCtxClass();
       }
     }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
     }
+  } catch (e) {
+    return null;
   }
+  return audioCtx;
+}
 
-  public isMuted(): boolean {
-    return this.muted;
-  }
-
-  public toggleMute(): boolean {
-    this.muted = !this.muted;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('courtmate-sound-muted', String(this.muted));
-    }
-    if (!this.muted) {
-      this.playBeep(600, 0.05, 'sine');
-    }
-    return this.muted;
-  }
-
-  // Soft futuristic click
-  public playClick() {
-    if (this.muted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-    try {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.04);
-      gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start();
-      osc.stop(this.ctx.currentTime + 0.04);
-    } catch {}
-  }
-
-  // Coin Clink
-  public playCoin() {
-    if (this.muted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-    try {
-      const now = this.ctx.currentTime;
-      [987.77, 1318.51].forEach((freq, i) => {
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, now + i * 0.06);
-        gain.gain.setValueAtTime(0.12, now + i * 0.06);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.15);
-        osc.connect(gain);
-        gain.connect(this.ctx!.destination);
-        osc.start(now + i * 0.06);
-        osc.stop(now + i * 0.06 + 0.15);
-      });
-    } catch {}
-  }
-
-  // Challenge fanfare / Victory Chord
-  public playVictory() {
-    if (this.muted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-    try {
-      const now = this.ctx.currentTime;
-      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
-      notes.forEach((freq, i) => {
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + i * 0.07);
-        gain.gain.setValueAtTime(0.1, now + i * 0.07);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.25);
-        osc.connect(gain);
-        gain.connect(this.ctx!.destination);
-        osc.start(now + i * 0.07);
-        osc.stop(now + i * 0.07 + 0.25);
-      });
-    } catch {}
-  }
-
-  // Battle Horn / Challenge Issued
-  public playBattle() {
-    if (this.muted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-    try {
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(220, now);
-      osc.frequency.linearRampToValueAtTime(440, now + 0.12);
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.3);
-    } catch {}
-  }
-
-  private playBeep(freq: number, duration: number, type: OscillatorType = 'sine') {
-    this.initCtx();
-    if (!this.ctx) return;
-    try {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-      gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start();
-      osc.stop(this.ctx.currentTime + duration);
-    } catch {}
+export function isSoundMuted(): boolean {
+  if (!isClient()) return false;
+  try {
+    return localStorage.getItem('courtmate_sound_muted') === 'true';
+  } catch {
+    return false;
   }
 }
 
-export const sound = new SoundEngine();
+export function toggleSound(): boolean {
+  if (!isClient()) return true;
+  const current = isSoundMuted();
+  const next = !current;
+  try {
+    localStorage.setItem('courtmate_sound_muted', String(next));
+  } catch {}
+  return !next; // returns true if enabled
+}
+
+/** Crisp mechanical switch click — UI tab/button press */
+export function playClick() {
+  if (isSoundMuted()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.04);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.05);
+  } catch {}
+}
+
+/** Metallic coin chime — coin earn / stake deposit */
+export function playCoin() {
+  if (isSoundMuted()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+  try {
+    [1200, 1800, 2400].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.06);
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.06);
+      gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + i * 0.06 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.06 + 0.3);
+      osc.start(ctx.currentTime + i * 0.06);
+      osc.stop(ctx.currentTime + i * 0.06 + 0.35);
+    });
+  } catch {}
+}
+
+/** Heavy brass duel rumble — challenge issued */
+export function playDuel() {
+  if (isSoundMuted()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+  try {
+    const bufferSize = Math.floor(ctx.sampleRate * 0.08);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(120, ctx.currentTime);
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    noise.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    noise.start(ctx.currentTime);
+    noise.stop(ctx.currentTime + 0.28);
+
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.connect(oscGain);
+    oscGain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.2);
+    oscGain.gain.setValueAtTime(0.15, ctx.currentTime);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.22);
+  } catch {}
+}
+
+/** Arpeggio harmonic ping — victory / success / win */
+export function playSuccess() {
+  if (isSoundMuted()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+  try {
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.08);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime + i * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.4);
+      osc.start(ctx.currentTime + i * 0.08);
+      osc.stop(ctx.currentTime + i * 0.08 + 0.45);
+    });
+  } catch {}
+}
+
+/** Subtle whoosh — route transition */
+export function playWhoosh() {
+  if (isSoundMuted()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+  try {
+    const bufferSize = Math.floor(ctx.sampleRate * 0.12);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(2000, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(8000, ctx.currentTime + 0.1);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start(ctx.currentTime);
+    noise.stop(ctx.currentTime + 0.14);
+  } catch {}
+}
+
+/**
+ * Universal sound singleton export for backwards compatibility
+ * with all existing components
+ */
+export const sound = {
+  playClick,
+  playCoin,
+  playBattle: playDuel,
+  playDuel,
+  playVictory: playSuccess,
+  playSuccess,
+  playLevelUp: playSuccess,
+  playWhoosh,
+  isMuted: isSoundMuted,
+  toggle: toggleSound,
+  toggleSound,
+};

@@ -2,13 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db-helper';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { getCollegeById } from '@/data/colleges';
 
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'courtmate-secret-2026';
 const COOKIE_NAME = 'courtmate-session';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password, hostel = 'Day Scholar' } = await req.json();
+    const {
+      name,
+      email,
+      password,
+      collegeId = 'vit-vellore',
+      collegeName,
+      hostel = 'Day Scholar'
+    } = await req.json();
 
     if (!name || !email || !password) {
       return NextResponse.json({ success: false, error: 'All fields are required.' }, { status: 400 });
@@ -28,30 +36,62 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'An account with this email already exists.' }, { status: 409 });
     }
 
+    const college = getCollegeById(collegeId);
+    const resolvedCollegeName = collegeName || college.name;
+
+    // Check if academic email domain matches college's verified domains
+    const emailDomain = email.split('@')[1]?.toLowerCase();
+    const isVerifiedStudent = college.verifiedDomains?.some(d => emailDomain?.endsWith(d)) || emailDomain?.endsWith('.edu') || emailDomain?.endsWith('.ac.in');
+
     const hash = await bcrypt.hash(password, 12);
     const id = crypto.randomUUID();
     const avatar = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(email)}`;
     const now = new Date().toISOString();
 
-    await db.execute(
-      `INSERT INTO users (id, email, name, hash, avatar, hostel, role, coins, glicko_rating, glicko_rd, glicko_vol, is_banned, created_at) VALUES (?, ?, ?, ?, ?, ?, 'student', 100, 1500, 350, 0.06, 0, ?)`,
-      [id, email, name, hash, avatar, hostel, now]
-    );
+    // Ensure users table supports college_id if not present by updating bio/hostel or column
+    try {
+      await db.execute(
+        `INSERT INTO users (id, email, name, hash, avatar, hostel, role, coins, glicko_rating, glicko_rd, glicko_vol, is_banned, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'student', 100, 1500, 350, 0.06, 0, ?)`,
+        [id, email, name, hash, avatar, `${resolvedCollegeName} · ${hostel}`, now]
+      );
+    } catch {
+      await db.execute(
+        `INSERT INTO users (id, email, name, hash, avatar, hostel, role, coins, glicko_rating, glicko_rd, glicko_vol, is_banned, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'student', 100, 1500, 350, 0.06, 0, ?)`,
+        [id, email, name, hash, avatar, hostel, now]
+      );
+    }
 
     const userRows = await db.query('SELECT * FROM users WHERE id = ?', [id]);
     const user = userRows[0] as any;
     if (!user) throw new Error('Failed to create user');
 
     const token = jwt.sign(
-      { userId: user.id, role: user.role, name: user.name, email: user.email },
+      {
+        userId: user.id,
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        collegeId: collegeId,
+        collegeName: resolvedCollegeName,
+        isVerifiedStudent: Boolean(isVerifiedStudent),
+      },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
 
     const mappedUser = {
-      id: user.id, name: user.name, email: user.email,
-      avatar: user.avatar, hostel: user.hostel,
-      coins: user.coins, role: user.role,
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      hostel: user.hostel,
+      collegeId: collegeId,
+      collegeName: resolvedCollegeName,
+      isVerifiedStudent: Boolean(isVerifiedStudent),
+      coins: user.coins,
+      role: user.role,
       glickoRating: { rating: user.glicko_rating || 1500, rd: user.glicko_rd || 350, vol: user.glicko_vol || 0.06 }
     };
 

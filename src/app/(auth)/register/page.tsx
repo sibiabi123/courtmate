@@ -4,19 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, UserPlus, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, UserPlus, AlertCircle, CheckCircle2, Search, Building2, MapPin, GraduationCap, Sparkles } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
-
-const REGIONS = [
-  'Main Campus / Center',
-  'North District',
-  'South District',
-  'East District',
-  'West District',
-  'Sports Complex',
-  'Downtown / Off-Campus',
-  'Day Scholar / Resident',
-];
+import { GLOBAL_COLLEGES, College } from '@/data/colleges';
 
 function getPasswordStrength(pwd: string): { label: string; color: string; pct: number } {
   if (pwd.length === 0) return { label: '', color: '#333', pct: 0 };
@@ -25,16 +15,29 @@ function getPasswordStrength(pwd: string): { label: string; color: string; pct: 
   if (/[A-Z]/.test(pwd)) score++;
   if (/[0-9]/.test(pwd)) score++;
   if (/[^A-Za-z0-9]/.test(pwd)) score++;
-  if (score <= 1) return { label: 'Weak', color: '#ef4444', pct: 25 };
+  if (score <= 1) return { label: 'Weak', color: '#FF2A55', pct: 25 };
   if (score === 2) return { label: 'Fair', color: '#f59e0b', pct: 50 };
-  if (score === 3) return { label: 'Good', color: '#3b82f6', pct: 75 };
-  return { label: 'Strong', color: '#10b981', pct: 100 };
+  if (score === 3) return { label: 'Good', color: '#00F0FF', pct: 75 };
+  return { label: 'Strong', color: '#CCFF00', pct: 100 };
 }
 
 export default function RegisterPage() {
   const router = useRouter();
   const { setCurrentUser } = useUIStore();
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '', hostel: 'Main Campus / Center' });
+  
+  const [selectedCollege, setSelectedCollege] = useState<College>(GLOBAL_COLLEGES[0]);
+  const [customCollegeName, setCustomCollegeName] = useState('');
+  const [isCustomCollege, setIsCustomCollege] = useState(false);
+  const [collegeSearch, setCollegeSearch] = useState('');
+  
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirm: '',
+    hostel: GLOBAL_COLLEGES[0].residences[0] || 'Day Scholar',
+  });
+
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -42,6 +45,20 @@ export default function RegisterPage() {
 
   const pwdStrength = getPasswordStrength(form.password);
   const emailValid = /^[^@]+@[^@]+\.[^@]+$/.test(form.email);
+  const emailDomain = form.email.split('@')[1]?.toLowerCase();
+  const isVerifiedAcademic = selectedCollege.verifiedDomains?.some(d => emailDomain?.endsWith(d)) || emailDomain?.endsWith('.edu') || emailDomain?.endsWith('.ac.in');
+
+  const filteredColleges = GLOBAL_COLLEGES.filter(
+    c => c.name.toLowerCase().includes(collegeSearch.toLowerCase()) ||
+         c.shortName.toLowerCase().includes(collegeSearch.toLowerCase()) ||
+         c.country.toLowerCase().includes(collegeSearch.toLowerCase())
+  );
+
+  const handleCollegeChange = (c: College) => {
+    setSelectedCollege(c);
+    setIsCustomCollege(false);
+    setForm(prev => ({ ...prev, hostel: c.residences[0] || 'Day Scholar / Off-Campus' }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,12 +68,24 @@ export default function RegisterPage() {
     if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
     if (!agreed) { setError('Please accept the terms to continue.'); return; }
     setLoading(true);
+
     try {
+      const collegeId = isCustomCollege ? 'custom-' + customCollegeName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : selectedCollege.id;
+      const collegeName = isCustomCollege ? customCollegeName : selectedCollege.name;
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email, password: form.password, hostel: form.hostel }),
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          collegeId,
+          collegeName,
+          hostel: form.hostel,
+        }),
       });
+
       const data = await res.json();
       if (!res.ok || !data.success) {
         setError(data.error || 'Registration failed. Try again.');
@@ -72,111 +101,268 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex">
-      {/* Left: Sports Arena Photo */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1280&q=80"
-          alt="Sports Arena"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(10,10,15,0.8), rgba(0,245,212,0.3))' }} />
-        <div className="absolute bottom-12 left-10 right-10">
-          <h2 className="text-4xl font-black font-outfit text-white mb-3">Join Court<span className="text-[#00f5d4]">Mate</span></h2>
-          <p className="text-white/80 text-lg font-body">Create your player sports card, claim 100 welcome coins, and find your squad today.</p>
+    <div className="min-h-screen bg-[#040507] flex">
+      {/* Left: Global Collegiate Hero */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-12 bg-[#08090C] border-r border-white/10">
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#CCFF00_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+        <div className="relative z-10">
+          <Link href="/" className="inline-flex items-center gap-2 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-[#CCFF00] flex items-center justify-center text-[#040507] font-black text-sm">
+              CM
+            </div>
+            <span className="text-2xl font-black font-outfit text-white">Court<span className="text-[#CCFF00]">Mate</span></span>
+          </Link>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/30 mb-4">
+            <GraduationCap className="w-4 h-4" /> Global Collegiate Athletic Network
+          </div>
+          <h2 className="text-4xl font-black font-outfit text-white leading-tight mb-4">
+            Compete, Duel & Dominate Within <span className="text-[#CCFF00]">Your College</span> & Worldwide.
+          </h2>
+          <p className="text-[#a0a0b8] text-sm leading-relaxed max-w-md">
+            Join 200+ universities worldwide. Host match lobbies on campus courts, stake ELO in 1v1 duels, and represent your university in global derbies.
+          </p>
+        </div>
+
+        {/* Live campus chips */}
+        <div className="relative z-10 pt-8 border-t border-white/10">
+          <p className="text-xs font-black uppercase tracking-wider text-[#6b6b80] mb-3">Featured Campuses</p>
+          <div className="flex flex-wrap gap-2">
+            {GLOBAL_COLLEGES.slice(0, 6).map(c => (
+              <span key={c.id} className="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 border border-white/10 text-white flex items-center gap-1.5">
+                <span>{c.emblem}</span> {c.shortName}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Right: Register Form */}
       <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
-        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md py-8">
-          <div className="lg:hidden text-center mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg py-8">
+          
+          <div className="lg:hidden text-center mb-6">
             <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}>
-                <span className="text-white font-black text-sm">CM</span>
+              <div className="w-9 h-9 rounded-xl bg-[#CCFF00] text-[#040507] font-black flex items-center justify-center text-xs">
+                CM
               </div>
-              <span className="text-2xl font-black font-outfit text-white">Court<span className="text-[#00f5d4]">Mate</span></span>
+              <span className="text-2xl font-black font-outfit text-white">Court<span className="text-[#CCFF00]">Mate</span></span>
             </Link>
           </div>
 
-          <h1 className="text-3xl font-black font-outfit text-white mb-2">Create your account</h1>
-          <p className="text-[#6b6b80] mb-8 font-body">Join the international sports matchmaking & tournament platform</p>
-
-          {error && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mb-6">
-              <AlertCircle className="w-4 h-4 shrink-0" />{error}
-            </motion.div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-[#a0a0b8] mb-2 font-outfit uppercase tracking-wider text-xs">Full Name</label>
-              <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Your full name" required
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[#4a4a5a] focus:outline-none focus:border-[#7b2ff7] transition-all" />
+          <div className="rounded-3xl border border-white/10 bg-[#0A0C10] p-8 shadow-2xl">
+            <div className="mb-6">
+              <h1 className="text-2xl font-black font-outfit text-white">Create Athlete Profile</h1>
+              <p className="text-xs text-[#a0a0b8] mt-1">Get your 3D card and 100 welcome coins 🪙</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[#a0a0b8] mb-2 font-outfit uppercase tracking-wider text-xs">Email</label>
-              <div className="relative">
-                <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" required
-                  className={`w-full bg-white/5 border rounded-xl px-4 py-3 pr-10 text-white placeholder-[#4a4a5a] focus:outline-none transition-all ${
-                    form.email && !emailValid ? 'border-red-500/50' : form.email && emailValid ? 'border-emerald-500/50' : 'border-white/10 focus:border-[#7b2ff7]'
-                  }`} />
-                {form.email && emailValid && <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />}
+            {error && (
+              <div className="mb-5 p-3.5 rounded-xl bg-[#FF2A55]/10 border border-[#FF2A55]/30 text-[#FF2A55] text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
               </div>
-              {form.email && !emailValid && <p className="text-xs text-red-400 mt-1 font-body">Please enter a valid email address</p>}
-            </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-[#a0a0b8] mb-2 font-outfit uppercase tracking-wider text-xs">Region / Campus Block</label>
-              <select value={form.hostel} onChange={e => setForm({ ...form, hostel: e.target.value })}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#7b2ff7] transition-all" style={{ appearance: 'none' }}>
-                {REGIONS.map(h => <option key={h} value={h} style={{ background: '#111118' }}>{h}</option>)}
-              </select>
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {/* College Selection */}
+              <div>
+                <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">
+                  Select University / College
+                </label>
+                
+                {!isCustomCollege ? (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-[#6b6b80] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Search MIT, Stanford, IIT, Oxford, VIT..."
+                        value={collegeSearch}
+                        onChange={e => setCollegeSearch(e.target.value)}
+                        className="w-full rounded-xl bg-white/5 border border-white/10 pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
+                      />
+                    </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[#a0a0b8] mb-2 font-outfit uppercase tracking-wider text-xs">Password</label>
-              <div className="relative">
-                <input type={showPwd ? 'text' : 'password'} value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Min. 8 characters" required
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder-[#4a4a5a] focus:outline-none focus:border-[#7b2ff7] transition-all" />
-                <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6b6b80] hover:text-white">
-                  {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {form.password && (
-                <div className="mt-2">
-                  <div className="h-1 rounded-full bg-white/10 overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pwdStrength.pct}%`, background: pwdStrength.color }} />
+                    <div className="max-h-36 overflow-y-auto space-y-1 border border-white/10 rounded-xl p-1.5 bg-[#08090C]">
+                      {filteredColleges.map(c => (
+                        <button
+                          type="button"
+                          key={c.id}
+                          onClick={() => handleCollegeChange(c)}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-between transition-all ${
+                            selectedCollege.id === c.id
+                              ? 'bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30'
+                              : 'text-white/80 hover:bg-white/5'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <span>{c.emblem}</span>
+                            <span className="truncate">{c.name}</span>
+                          </div>
+                          <span className="text-[10px] text-[#6b6b80] shrink-0">{c.city}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomCollege(true)}
+                      className="text-[11px] text-[#00F0FF] hover:underline font-bold"
+                    >
+                      + My university is not listed
+                    </button>
                   </div>
-                  <p className="text-xs mt-1 font-semibold" style={{ color: pwdStrength.color }}>{pwdStrength.label}</p>
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter Full University Name..."
+                      value={customCollegeName}
+                      onChange={e => setCustomCollegeName(e.target.value)}
+                      className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomCollege(false)}
+                      className="text-[11px] text-[#CCFF00] hover:underline font-bold"
+                    >
+                      ← Pick from verified university list
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Name */}
+              <div>
+                <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Alex Kumar"
+                  value={form.name}
+                  onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
+                />
+              </div>
+
+              {/* Email with Verified Badge Preview */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-[#a0a0b8] uppercase tracking-wider">Email Address</label>
+                  {isVerifiedAcademic && (
+                    <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                      <GraduationCap className="w-3 h-3" /> Verified Student Domain
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="email"
+                  required
+                  placeholder="student@university.edu or your personal email"
+                  value={form.email}
+                  onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
+                />
+              </div>
+
+              {/* Campus Residence / Dorm */}
+              <div>
+                <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">
+                  Hostel / Dorm / Residence
+                </label>
+                <select
+                  value={form.hostel}
+                  onChange={e => setForm(prev => ({ ...prev, hostel: e.target.value }))}
+                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white focus:outline-none focus:border-[#CCFF00]"
+                >
+                  {(selectedCollege.residences || ['Day Scholar / Off-Campus']).map(r => (
+                    <option key={r} value={r} className="bg-[#0A0C10]">{r}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Password Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPwd ? 'text' : 'password'}
+                      required
+                      placeholder="8+ characters"
+                      value={form.password}
+                      onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
+                      className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 pr-10 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPwd(!showPwd)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b6b80] hover:text-white"
+                    >
+                      {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">Confirm</label>
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    required
+                    placeholder="Repeat password"
+                    value={form.confirm}
+                    onChange={e => setForm(prev => ({ ...prev, confirm: e.target.value }))}
+                    className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
+                  />
+                </div>
+              </div>
+
+              {/* Password Strength Indicator */}
+              {form.password && (
+                <div className="space-y-1">
+                  <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      style={{ width: `${pwdStrength.pct}%`, background: pwdStrength.color }}
+                      className="h-full transition-all"
+                    />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold" style={{ color: pwdStrength.color }}>
+                    Strength: {pwdStrength.label}
+                  </span>
                 </div>
               )}
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-[#a0a0b8] mb-2 font-outfit uppercase tracking-wider text-xs">Confirm Password</label>
-              <input type="password" value={form.confirm} onChange={e => setForm({ ...form, confirm: e.target.value })} placeholder="Re-enter password" required
-                className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white placeholder-[#4a4a5a] focus:outline-none transition-all ${
-                  form.confirm && form.confirm !== form.password ? 'border-red-500/50' : form.confirm && form.confirm === form.password ? 'border-emerald-500/50' : 'border-white/10 focus:border-[#7b2ff7]'
-                }`} />
-            </div>
+              {/* Terms checkbox */}
+              <label className="flex items-start gap-2 pt-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={e => setAgreed(e.target.checked)}
+                  className="mt-0.5 rounded accent-[#CCFF00]"
+                />
+                <span className="text-[11px] text-[#a0a0b8] leading-tight">
+                  I agree to the Fair Play Guidelines and Campus Sports Honor Code.
+                </span>
+              </label>
 
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-0.5 accent-[#7b2ff7]" />
-              <span className="text-sm text-[#6b6b80] font-body">I agree to the <span className="text-[#00f5d4] hover:underline cursor-pointer">Terms of Service</span> and <span className="text-[#00f5d4] hover:underline cursor-pointer">Privacy Policy</span></span>
-            </label>
+              <button
+                type="submit"
+                disabled={loading || !agreed}
+                className="btn-volt w-full flex items-center justify-center gap-2 py-3.5 mt-4"
+              >
+                {loading ? <span className="w-4 h-4 border-2 border-[#040507]/40 border-t-[#040507] rounded-full animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                Create Collegiate Athlete Card (+100 🪙)
+              </button>
+            </form>
 
-            <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 mt-2"
-              style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}>
-              {loading ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              {loading ? 'Creating Account...' : 'Create Account'}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-[#6b6b80] mt-6 font-body">
-            Already have an account? <Link href="/login" className="text-[#00f5d4] font-semibold hover:underline">Sign in</Link>
-          </p>
+            <p className="text-center text-xs text-[#6b6b80] mt-6">
+              Already have an account?{' '}
+              <Link href="/login" className="text-[#CCFF00] hover:underline font-bold">
+                Sign In
+              </Link>
+            </p>
+          </div>
         </motion.div>
       </div>
     </div>

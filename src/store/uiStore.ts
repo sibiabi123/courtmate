@@ -3,12 +3,16 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-interface User {
+export interface User {
   id: string;
   name: string;
   email: string;
   avatar: string;
   hostel: string;
+  collegeId?: string;
+  collegeName?: string;
+  isVerifiedStudent?: boolean;
+  isPro?: boolean;
   coins: number;
   role?: string;
   glickoRating: { rating: number; rd: number; vol: number };
@@ -45,6 +49,7 @@ interface UIState {
   markNotificationRead: (id: string) => void;
   clearNotifications: () => void;
   updateCoins: (amount: number, reason?: string) => void;
+  addCoins: (amount: number, reason?: string) => void;
   claimDailyBonus: () => number; // returns coins earned (0 if already claimed)
   completeOnboarding: () => void;
   incrementMatchesJoined: () => void;
@@ -119,13 +124,15 @@ export const useUIStore = create<UIState>()(
           ] : s.coinHistory,
         })),
 
+      addCoins: (amount, reason = 'Coin Store Purchase') =>
+        get().updateCoins(amount, reason),
+
       canClaimDaily: () => {
         const { lastDailyClaim, isAuthenticated } = get();
         if (!isAuthenticated) return false;
         if (!lastDailyClaim) return true;
         const last = new Date(lastDailyClaim);
         const now = new Date();
-        // Check if it's a different calendar day
         return (
           last.getDate() !== now.getDate() ||
           last.getMonth() !== now.getMonth() ||
@@ -134,10 +141,9 @@ export const useUIStore = create<UIState>()(
       },
 
       claimDailyBonus: () => {
-        const { canClaimDaily, currentUser, totalMatchesJoined, coinHistory } = get();
+        const { canClaimDaily, currentUser, coinHistory } = get();
         if (!canClaimDaily() || !currentUser) return 0;
 
-        // Streak bonus: more coins for consecutive days
         const streakDays = coinHistory.filter(tx => {
           const d = new Date(tx.createdAt);
           const now = new Date();
@@ -145,7 +151,7 @@ export const useUIStore = create<UIState>()(
           return daysDiff <= 7 && tx.reason === 'Daily Login Bonus';
         }).length;
 
-        const bonus = Math.min(50 + streakDays * 10, 150); // 50–150 coins
+        const bonus = Math.min(50 + streakDays * 10, 150);
 
         set((s) => ({
           lastDailyClaim: new Date().toISOString(),

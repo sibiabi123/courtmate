@@ -4,16 +4,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, X, Clock, Users, RefreshCw, Share2, Eye, CheckCircle, Zap, MapPin,
-  ChevronDown, ChevronUp, Copy, Check, MessageSquare, Shield, AlertTriangle, UserCheck, UserX, Loader2
+  ChevronDown, ChevronUp, Copy, Check, MessageSquare, Shield, AlertTriangle,
+  UserCheck, UserX, Loader2, Building2, Crown, Store
 } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { LiveScoreboardTicker } from '@/components/ui/LiveScoreboardTicker';
 import { ProfileProgressWidget } from '@/components/ui/ProfileProgressWidget';
 import { LobbyChatDrawer } from '@/components/ui/LobbyChatDrawer';
+import { TurfBookingWidget } from '@/components/ui/TurfBookingWidget';
 import { playClick, playCoin, playSuccess } from '@/lib/sound';
+import { GLOBAL_COLLEGES, getCollegeById } from '@/data/colleges';
 
 const SPORTS = ['All', 'Cricket', 'Football', 'Badminton', 'Basketball', 'Table Tennis', 'Volleyball', 'Kabaddi', 'Tennis', 'Chess'];
-const GROUNDS = ['Main Sports Arena', 'Cricket Nets Arena', 'Basketball Center Court', 'Indoor Badminton Complex', 'Table Tennis Hall', 'Volleyball Court', 'Athletic Complex', 'Outdoor Multi-Courts', 'Olympic Swimming Pool', 'Central Sports Ground'];
 const SPORT_EMOJIS: Record<string, string> = { Cricket: '🏏', Football: '⚽', Badminton: '🏸', Basketball: '🏀', 'Table Tennis': '🏓', Volleyball: '🏐', Kabaddi: '🤼', Tennis: '🎾', Chess: '♟️', default: '🏅' };
 
 function getTier(rating: number) {
@@ -167,7 +169,7 @@ function ParticipantsModal({ post, onClose }: { post: any; onClose: () => void }
   );
 }
 
-// ── Host Attendance Checkoff Modal (Anti-Ghosting System) ───────────────────
+// ── Host Attendance Checkoff Modal ──────────────────────────────────────────
 function AttendanceCheckoffModal({ post, onClose }: { post: any; onClose: () => void }) {
   const [participants, setParticipants] = useState<any[]>([]);
   const [attendanceMap, setAttendanceMap] = useState<Record<string, boolean>>({});
@@ -182,7 +184,7 @@ function AttendanceCheckoffModal({ post, onClose }: { post: any; onClose: () => 
         const list = Array.isArray(d.participants) ? d.participants : [];
         setParticipants(list);
         const initialMap: Record<string, boolean> = {};
-        list.forEach(p => { initialMap[p.id] = true; }); // Default: attended
+        list.forEach(p => { initialMap[p.id] = true; });
         setAttendanceMap(initialMap);
       })
       .catch(() => setParticipants([]))
@@ -312,9 +314,28 @@ function AttendanceCheckoffModal({ post, onClose }: { post: any; onClose: () => 
 }
 
 // ── Create Post Modal ───────────────────────────────────────────────────────
-function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function CreatePostModal({
+  onClose,
+  onCreated,
+  campusVenues = [],
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+  campusVenues?: any[];
+}) {
   const { currentUser } = useUIStore();
-  const [form, setForm] = useState({ sport: 'Badminton', ground: GROUNDS[0], maxPlayers: 4, date: '', time: '', description: '' });
+  const availableVenues = campusVenues.length > 0 ? campusVenues.map(v => v.name) : [
+    'Main Sports Arena', 'Indoor Badminton Complex', 'Basketball Center Court', 'Cricket Nets Arena', 'Multi-Sports Field'
+  ];
+
+  const [form, setForm] = useState({
+    sport: 'Badminton',
+    ground: availableVenues[0],
+    maxPlayers: 4,
+    date: '',
+    time: '',
+    description: ''
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -324,10 +345,14 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
     setLoading(true); setError('');
     try {
       const scheduledStart = form.date && form.time ? new Date(`${form.date}T${form.time}`) : new Date(Date.now() + 3600000);
-      const res = await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, scheduledStart }) });
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, scheduledStart, collegeId: currentUser.collegeId || 'vit-vellore' })
+      });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to create post');
-      // Reward coins for posting a match
+      
       try {
         const { emitCoinEarn } = await import('@/hooks/useCoinEarn');
         const { useUIStore } = await import('@/store/uiStore');
@@ -345,12 +370,11 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
     <>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-black/80 backdrop-blur-md" onClick={onClose} />
       <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 p-6 shadow-2xl"
-        style={{ background: '#0A0C10' }}>
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border border-white/10 p-6 shadow-2xl bg-[#0A0C10]">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="text-xl font-black font-[family-name:var(--font-outfit)] text-white">Post Match Lobby</h3>
-            <p className="text-xs text-[#6b6b80] mt-0.5">Host a game and gather players on campus</p>
+            <p className="text-xs text-[#6b6b80] mt-0.5">Host a game and gather players on your campus</p>
           </div>
           <button onClick={() => { playClick(); onClose(); }} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6b6b80] hover:bg-white/8 transition-all"><X className="w-4 h-4" /></button>
         </div>
@@ -377,11 +401,10 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
           {/* Ground */}
           <div>
-            <label className="block text-xs font-semibold text-[#a0a0b8] uppercase tracking-wider mb-2">Venue / Arena</label>
+            <label className="block text-xs font-semibold text-[#a0a0b8] uppercase tracking-wider mb-2">Campus Arena / Venue</label>
             <select value={form.ground} onChange={e => { playClick(); setForm(f => ({ ...f, ground: e.target.value })); }}
-              className="w-full rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00] transition-colors"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
-              {GROUNDS.map(g => <option key={g} value={g} className="bg-[#111118]">{g}</option>)}
+              className="w-full rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00] transition-colors bg-white/5 border border-white/10">
+              {availableVenues.map(g => <option key={g} value={g} className="bg-[#0A0C10]">{g}</option>)}
             </select>
           </div>
 
@@ -390,14 +413,14 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <div>
               <label className="block text-xs font-semibold text-[#a0a0b8] uppercase tracking-wider mb-2">Date</label>
               <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} min={new Date().toISOString().split('T')[0]}
-                className="w-full rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00] transition-colors"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
+                className="w-full rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00] transition-colors bg-white/5 border border-white/10"
+                style={{ colorScheme: 'dark' }} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-[#a0a0b8] uppercase tracking-wider mb-2">Time</label>
               <input type="time" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))}
-                className="w-full rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00] transition-colors"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', colorScheme: 'dark' }} />
+                className="w-full rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00] transition-colors bg-white/5 border border-white/10"
+                style={{ colorScheme: 'dark' }} />
             </div>
           </div>
 
@@ -414,8 +437,7 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <label className="block text-xs font-semibold text-[#a0a0b8] uppercase tracking-wider mb-2">Description (optional)</label>
             <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2}
               placeholder="e.g. Competitive doubles match, bring your own racket!"
-              className="w-full rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00] transition-colors resize-none placeholder:text-[#4b4b5a]"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
+              className="w-full rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00] transition-colors resize-none placeholder:text-[#4b4b5a] bg-white/5 border border-white/10" />
           </div>
 
           <button type="submit" disabled={loading}
@@ -436,12 +458,14 @@ function PostCard({
   onViewPlayers,
   onOpenChat,
   onOpenAttendance,
+  onOpenTurf,
 }: {
   post: any;
   onJoined: () => void;
   onViewPlayers: (post: any) => void;
   onOpenChat: (post: any) => void;
   onOpenAttendance: (post: any) => void;
+  onOpenTurf: (post: any) => void;
 }) {
   const { currentUser } = useUIStore();
   const [joining, setJoining] = useState(false);
@@ -490,7 +514,7 @@ function PostCard({
   const handleWhatsApp = () => {
     playClick();
     const url = `${window.location.origin}/feed?post=${post.id}`;
-    const msg = encodeURIComponent(`🏅 Join my ${post.sport} match at ${post.ground}!\n⏰ ${scheduledTime ? scheduledTime.toLocaleString('en-IN') : 'Soon'}\n👥 ${spotsLeft} slot${spotsLeft !== 1 ? 's' : ''} open!\n🔗 ${url}`);
+    const msg = encodeURIComponent(`🏅 [${post.sport} MATCH LINEUP]\n📍 Venue: ${post.ground}\n⏰ Time: ${scheduledTime ? scheduledTime.toLocaleString('en-IN') : 'Soon'}\n👥 Squad: ${post.currentPlayers}/${post.maxPlayers} Filled (${spotsLeft} Spot${spotsLeft !== 1 ? 's' : ''} Open!)\n\n👉 Tap to lock in your slot: ${url}`);
     window.open(`https://wa.me/?text=${msg}`, '_blank');
   };
 
@@ -499,7 +523,7 @@ function PostCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2 }}
-      className={`rounded-2xl border p-5 transition-all relative overflow-hidden group kinetic-card ${
+      className={`rounded-3xl border p-5 transition-all relative overflow-hidden group kinetic-card ${
         isUrgent ? 'border-[#FF2A55]/50' : isFull ? 'border-white/5' : 'border-white/10 hover:border-[#CCFF00]/40'
       }`}
       style={{
@@ -537,7 +561,7 @@ function PostCard({
       </div>
 
       {/* Match info block */}
-      <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="rounded-2xl p-4 mb-4 bg-white/[0.025] border border-white/5">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xl">{sportEmoji}</span>
           <h3 className="font-black text-white text-base font-[family-name:var(--font-outfit)]">{post.sport} Match</h3>
@@ -557,12 +581,12 @@ function PostCard({
       {/* Slots Progress */}
       <div className="mb-4">
         <div className="flex items-center justify-between text-xs mb-2">
-          <span className="text-[#6b6b80] flex items-center gap-1 stat-mono"><Users className="w-3 h-3" />{post.currentPlayers}/{post.maxPlayers} PLAYERS</span>
+          <span className="text-[#6b6b80] flex items-center gap-1 stat-mono"><Users className="w-3 h-3" />{post.currentPlayers}/{post.maxPlayers} ATHLETES</span>
           <span className="font-black text-xs stat-mono" style={{ color: isFull ? '#FF2A55' : spotsLeft <= 2 ? '#CCFF00' : '#00F0FF' }}>
             {isFull ? '🔴 FULL' : spotsLeft <= 2 ? `⚠️ ${spotsLeft} LEFT` : `✅ ${spotsLeft} SPOTS OPEN`}
           </span>
         </div>
-        <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div className="h-2 rounded-full overflow-hidden bg-white/5">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
@@ -579,8 +603,7 @@ function PostCard({
       <div className="flex items-center gap-2 flex-wrap">
         <button
           onClick={() => { playClick(); onViewPlayers(post); }}
-          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-white/8 text-[#a0a0b8] hover:text-white tactile-press"
-          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-white/8 text-[#a0a0b8] hover:text-white border border-white/10"
         >
           <Eye className="w-3.5 h-3.5" />Players
         </button>
@@ -588,18 +611,24 @@ function PostCard({
         {/* Tactical Lobby Chat Trigger */}
         <button
           onClick={() => { playClick(); onOpenChat(post); }}
-          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-[#CCFF00]/10 text-[#CCFF00] hover:text-white tactile-press"
-          style={{ border: '1px solid rgba(204,255,0,0.25)' }}
+          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-[#CCFF00]/10 text-[#CCFF00] hover:text-white border border-[#CCFF00]/25"
         >
           <MessageSquare className="w-3.5 h-3.5 text-[#CCFF00]" /> Chat & Pings
+        </button>
+
+        {/* Commercial Turf Booking Trigger */}
+        <button
+          onClick={() => { playClick(); onOpenTurf(post); }}
+          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-[#00F0FF]/10 text-[#00F0FF] hover:text-white border border-[#00F0FF]/25"
+        >
+          <Store className="w-3.5 h-3.5 text-[#00F0FF]" /> Book Turf
         </button>
 
         {/* Host Attendance Button */}
         {isOwner && (
           <button
             onClick={() => { playClick(); onOpenAttendance(post); }}
-            className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 tactile-press"
-            style={{ border: '1px solid rgba(52,211,153,0.3)' }}
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30"
           >
             <Shield className="w-3.5 h-3.5" /> Attendance
           </button>
@@ -608,16 +637,15 @@ function PostCard({
         {/* WhatsApp Share */}
         <button
           onClick={handleWhatsApp}
-          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-emerald-500/10 text-[#25D366] hover:text-emerald-300 tactile-press"
-          style={{ border: '1px solid rgba(37,211,102,0.2)' }}
+          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-emerald-500/10 text-[#25D366] hover:text-emerald-300 border border-[#25D366]/30"
         >
-          💬 WhatsApp
+          💬 WhatsApp Lineup
         </button>
 
         <button
           onClick={handleShare}
-          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-white/8 tactile-press"
-          style={{ color: copied ? '#CCFF00' : '#a0a0b8', border: '1px solid rgba(255,255,255,0.08)' }}
+          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-white/8 border border-white/10"
+          style={{ color: copied ? '#CCFF00' : '#a0a0b8' }}
         >
           {copied ? <><Check className="w-3.5 h-3.5" />Copied</> : <><Share2 className="w-3.5 h-3.5" />Link</>}
         </button>
@@ -625,11 +653,11 @@ function PostCard({
         <div className="flex-1" />
 
         {isOwner ? (
-          <span className="text-xs font-bold text-[#CCFF00] px-4 py-2 rounded-xl stat-mono" style={{ background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.3)' }}>
+          <span className="text-xs font-bold text-[#CCFF00] px-4 py-2 rounded-xl stat-mono bg-[#CCFF00]/10 border border-[#CCFF00]/30">
             HOST
           </span>
         ) : joined ? (
-          <span className="flex items-center gap-1.5 text-xs font-bold text-[#CCFF00] px-4 py-2 rounded-xl stat-mono" style={{ background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.3)' }}>
+          <span className="flex items-center gap-1.5 text-xs font-bold text-[#CCFF00] px-4 py-2 rounded-xl stat-mono bg-[#CCFF00]/10 border border-[#CCFF00]/30">
             <CheckCircle className="w-3.5 h-3.5" />JOINED +10 🪙
           </span>
         ) : !currentUser ? (
@@ -640,7 +668,7 @@ function PostCard({
           <button
             onClick={handleJoin}
             disabled={joining || isFull}
-            className="text-xs font-black text-[#040507] px-5 py-2.5 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 shadow-lg btn-volt tactile-press"
+            className="text-xs font-black text-[#040507] px-5 py-2.5 rounded-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 shadow-lg btn-volt"
           >
             {joining ? <span className="inline-flex items-center gap-1"><span className="w-3 h-3 border-2 border-[#040507]/30 border-t-[#040507] rounded-full animate-spin" /></span> : isFull ? '🔴 Full' : '⚡ Join (+10 🪙)'}
           </button>
@@ -660,7 +688,10 @@ export default function FeedPage() {
   const [viewPost, setViewPost] = useState<any>(null);
   const [chatPost, setChatPost] = useState<any>(null);
   const [attendancePost, setAttendancePost] = useState<any>(null);
+  const [turfPost, setTurfPost] = useState<any>(null);
   const [showMyMatches, setShowMyMatches] = useState(false);
+
+  const activeCollege = getCollegeById(currentUser?.collegeId || 'vit-vellore');
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -685,19 +716,22 @@ export default function FeedPage() {
     <main className="min-h-screen bg-[#040507] pt-24 pb-28 px-4 text-white">
       <div className="max-w-2xl mx-auto">
 
-        {/* Header */}
+        {/* Campus Header */}
         <div className="flex items-center justify-between mb-6 mt-4">
           <div>
-            <h1 className="text-3xl font-black text-white font-[family-name:var(--font-outfit)]">Match Feed</h1>
-            <p className="text-xs text-[#6b6b80] stat-mono">{posts.length} ACTIVE LOBBIES · AUTO-REFRESH</p>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 mb-1.5">
+              <span>{activeCollege.emblem}</span> {activeCollege.name}
+            </div>
+            <h1 className="text-3xl font-black text-white font-[family-name:var(--font-outfit)]">Campus Match Feed</h1>
+            <p className="text-xs text-[#6b6b80] stat-mono">{posts.length} ACTIVE SQUAD LOBBIES · AUTO-REFRESH</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => { playClick(); fetchPosts(); }} className="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6b80] hover:text-white hover:bg-white/8 transition-all tactile-press" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <button onClick={() => { playClick(); fetchPosts(); }} className="w-9 h-9 rounded-xl flex items-center justify-center text-[#6b6b80] hover:text-white hover:bg-white/8 transition-all border border-white/10">
               <RefreshCw className="w-4 h-4" />
             </button>
             {currentUser && (
               <button onClick={() => { playClick(); setShowCreate(true)} }
-                className="flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[#040507] text-sm btn-volt tactile-press">
+                className="btn-volt flex items-center gap-2 px-4 py-2 text-sm font-black">
                 <Plus className="w-4 h-4" />Host Match
               </button>
             )}
@@ -706,20 +740,20 @@ export default function FeedPage() {
 
         {/* My Matches */}
         {currentUser && myPosts.length > 0 && (
-          <div className="mb-5 rounded-2xl border border-[#CCFF00]/20 overflow-hidden" style={{ background: 'rgba(204,255,0,0.04)' }}>
+          <div className="mb-5 rounded-3xl border border-[#CCFF00]/20 overflow-hidden bg-[#CCFF00]/5">
             <button onClick={() => { playClick(); setShowMyMatches(!showMyMatches); }}
-              className="w-full flex items-center justify-between px-4 py-3">
+              className="w-full flex items-center justify-between px-5 py-3.5">
               <span className="font-bold text-[#CCFF00] text-sm flex items-center gap-2 font-[family-name:var(--font-outfit)]">
-                🏅 My Posted Matches <span className="bg-[#CCFF00] text-[#040507] text-[10px] font-black px-1.5 py-0.5 rounded-full stat-mono">{myPosts.length}</span>
+                🏅 My Hosted Matches <span className="bg-[#CCFF00] text-[#040507] text-[10px] font-black px-1.5 py-0.5 rounded-full stat-mono">{myPosts.length}</span>
               </span>
               {showMyMatches ? <ChevronUp className="w-4 h-4 text-[#CCFF00]" /> : <ChevronDown className="w-4 h-4 text-[#CCFF00]" />}
             </button>
             <AnimatePresence>
               {showMyMatches && (
                 <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
-                  <div className="px-4 pb-4 space-y-3">
+                  <div className="px-5 pb-4 space-y-3">
                     {myPosts.map(p => (
-                      <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                      <div key={p.id} className="flex items-center gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/5">
                         <span className="text-xl">{SPORT_EMOJIS[p.sport] || '🏅'}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-white font-[family-name:var(--font-outfit)]">{p.sport} at {p.ground}</p>
@@ -756,9 +790,9 @@ export default function FeedPage() {
         <div className="flex gap-2 overflow-x-auto pb-3 mb-5 scrollbar-none">
           {SPORTS.map(s => (
             <button key={s} onClick={() => { playClick(); setSport(s); }}
-              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all tactile-press ${
+              className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 sport === s
-                  ? 'bg-[#CCFF00] text-[#040507] shadow-md shadow-[#CCFF00]/20 border border-[#CCFF00]'
+                  ? 'bg-[#CCFF00] text-[#040507] shadow-md shadow-[#CCFF00]/20'
                   : 'bg-white/5 text-[#a0a0b8] hover:text-white border border-white/5'
               }`}>
               {SPORT_EMOJIS[s] || ''} {s}
@@ -770,19 +804,19 @@ export default function FeedPage() {
         {loading ? (
           <div className="flex flex-col items-center py-20">
             <div className="w-8 h-8 border-2 border-[#CCFF00]/30 border-t-[#CCFF00] rounded-full animate-spin mb-4" />
-            <p className="text-[#6b6b80] text-sm stat-mono">LOADING MATCHES...</p>
+            <p className="text-[#6b6b80] text-sm stat-mono">LOADING CAMPUS LOBBIES...</p>
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-20 rounded-3xl border border-white/5 bg-[#0A0C10]/60 p-8">
             <div className="text-5xl mb-4">{SPORT_EMOJIS[sport] || '🏅'}</div>
-            <h3 className="text-white font-bold text-lg font-[family-name:var(--font-outfit)] mb-2">No {sport === 'All' ? '' : sport} matches right now</h3>
-            <p className="text-[#6b6b80] text-sm mb-6">Be the first athlete to host a lobby!</p>
+            <h3 className="text-white font-bold text-lg font-[family-name:var(--font-outfit)] mb-2">No {sport === 'All' ? '' : sport} matches at {activeCollege.shortName} right now</h3>
+            <p className="text-[#6b6b80] text-sm mb-6">Be the first athlete to host a lobby on your campus!</p>
             {currentUser ? (
-              <button onClick={() => { playClick(); setShowCreate(true); }} className="px-8 py-3 rounded-xl font-black text-[#040507] text-sm btn-volt">
+              <button onClick={() => { playClick(); setShowCreate(true); }} className="btn-volt px-8 py-3 text-sm font-black">
                 Host a Match
               </button>
             ) : (
-              <a href="/login" className="px-8 py-3 rounded-xl font-black text-[#040507] text-sm btn-volt">Sign In to Host</a>
+              <a href="/login" className="btn-volt px-8 py-3 text-sm font-black">Sign In to Host</a>
             )}
           </div>
         ) : (
@@ -795,12 +829,13 @@ export default function FeedPage() {
                 onViewPlayers={setViewPost}
                 onOpenChat={setChatPost}
                 onOpenAttendance={setAttendancePost}
+                onOpenTurf={setTurfPost}
               />
             ))}
           </div>
         )}
 
-        {/* Floating Quick Match Button (mobile) */}
+        {/* Floating Quick Match Button */}
         {currentUser && (
           <motion.button onClick={() => { playClick(); setShowCreate(true); }} whileTap={{ scale: 0.95 }}
             className="fixed bottom-24 right-4 z-30 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center md:hidden btn-volt"
@@ -811,7 +846,13 @@ export default function FeedPage() {
 
         {/* Modals */}
         <AnimatePresence>
-          {showCreate && <CreatePostModal onClose={() => setShowCreate(false)} onCreated={fetchPosts} />}
+          {showCreate && (
+            <CreatePostModal
+              onClose={() => setShowCreate(false)}
+              onCreated={fetchPosts}
+              campusVenues={activeCollege.venues}
+            />
+          )}
           {viewPost && <ParticipantsModal post={viewPost} onClose={() => setViewPost(null)} />}
           {attendancePost && <AttendanceCheckoffModal post={attendancePost} onClose={() => setAttendancePost(null)} />}
         </AnimatePresence>
@@ -824,6 +865,14 @@ export default function FeedPage() {
           isOpen={Boolean(chatPost)}
           onClose={() => setChatPost(null)}
           currentUser={currentUser}
+        />
+
+        {/* Commercial Turf Booking Modal */}
+        <TurfBookingWidget
+          collegeName={activeCollege.shortName}
+          sport={turfPost?.sport || 'Football'}
+          isOpen={Boolean(turfPost)}
+          onClose={() => setTurfPost(null)}
         />
       </div>
     </main>

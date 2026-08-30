@@ -12,6 +12,8 @@ import { LiveScoreboardTicker } from '@/components/ui/LiveScoreboardTicker';
 import { ProfileProgressWidget } from '@/components/ui/ProfileProgressWidget';
 import { LobbyChatDrawer } from '@/components/ui/LobbyChatDrawer';
 import { TurfBookingWidget } from '@/components/ui/TurfBookingWidget';
+import { NativeSponsorCard } from '@/components/ads/NativeSponsorCard';
+import { AffiliateGearWidget } from '@/components/ads/AffiliateGearWidget';
 import { playClick, playCoin, playSuccess } from '@/lib/sound';
 import { GLOBAL_COLLEGES, getCollegeById } from '@/data/colleges';
 
@@ -821,16 +823,29 @@ export default function FeedPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {posts.map(p => (
-              <PostCard
-                key={p.id}
-                post={p}
-                onJoined={fetchPosts}
-                onViewPlayers={setViewPost}
-                onOpenChat={setChatPost}
-                onOpenAttendance={setAttendancePost}
-                onOpenTurf={setTurfPost}
-              />
+            {posts.map((p, idx) => (
+              <div key={p.id} className="space-y-4">
+                <PostCard
+                  post={p}
+                  onJoined={fetchPosts}
+                  onViewPlayers={setViewPost}
+                  onOpenChat={setChatPost}
+                  onOpenAttendance={setAttendancePost}
+                  onOpenTurf={setTurfPost}
+                />
+
+                {/* Interleaved Native Sponsor Card every 3rd match */}
+                {(idx + 1) % 3 === 0 && (
+                  <NativeSponsorCard index={Math.floor(idx / 3)} />
+                )}
+
+                {/* Campus Gear Deals Widget after 2nd match */}
+                {idx === 1 && (
+                  <div className="my-3">
+                    <AffiliateGearWidget />
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}

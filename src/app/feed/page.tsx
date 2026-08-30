@@ -2,10 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Clock, Users, RefreshCw, Share2, Eye, CheckCircle, Zap, MapPin, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
+import {
+  Plus, X, Clock, Users, RefreshCw, Share2, Eye, CheckCircle, Zap, MapPin,
+  ChevronDown, ChevronUp, Copy, Check, MessageSquare, Shield, AlertTriangle, UserCheck, UserX, Loader2
+} from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { LiveScoreboardTicker } from '@/components/ui/LiveScoreboardTicker';
 import { ProfileProgressWidget } from '@/components/ui/ProfileProgressWidget';
+import { LobbyChatDrawer } from '@/components/ui/LobbyChatDrawer';
 import { playClick, playCoin, playSuccess } from '@/lib/sound';
 
 const SPORTS = ['All', 'Cricket', 'Football', 'Badminton', 'Basketball', 'Table Tennis', 'Volleyball', 'Kabaddi', 'Tennis', 'Chess'];
@@ -109,6 +113,7 @@ function ParticipantsModal({ post, onClose }: { post: any; onClose: () => void }
                       {isMe && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#CCFF00]/15 text-[#CCFF00] font-bold stat-mono">YOU</span>}
                       {isCreator && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#00F0FF]/15 text-[#00F0FF] font-bold stat-mono">HOST</span>}
                       <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold stat-mono" style={{ background: tier.bg, color: tier.color }}>{tier.emoji} {tier.label}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold stat-mono">🛡️ 100% Karma</span>
                     </div>
                     <p className="text-[11px] text-[#6b6b80] stat-mono">{p.hostel} · {Math.round(p.glickoRating || 1500)} RP</p>
                     {p.bio && <p className="text-[11px] text-[#a0a0b8] mt-0.5 italic">"{p.bio}"</p>}
@@ -156,6 +161,150 @@ function ParticipantsModal({ post, onClose }: { post: any; onClose: () => void }
             style={{ background: 'linear-gradient(135deg, #25D366, #128C7E)' }}>
             📲 WhatsApp
           </a>
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
+// ── Host Attendance Checkoff Modal (Anti-Ghosting System) ───────────────────
+function AttendanceCheckoffModal({ post, onClose }: { post: any; onClose: () => void }) {
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/posts/participants?postId=${post.id}`)
+      .then(r => r.json())
+      .then(d => {
+        const list = Array.isArray(d.participants) ? d.participants : [];
+        setParticipants(list);
+        const initialMap: Record<string, boolean> = {};
+        list.forEach(p => { initialMap[p.id] = true; }); // Default: attended
+        setAttendanceMap(initialMap);
+      })
+      .catch(() => setParticipants([]))
+      .finally(() => setLoading(false));
+  }, [post.id]);
+
+  const toggleAttendance = (userId: string) => {
+    playClick();
+    setAttendanceMap(prev => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
+  const handleSaveAttendance = async () => {
+    playClick();
+    setSubmitting(true);
+
+    try {
+      const records = participants.map(p => ({
+        userId: p.id,
+        attended: attendanceMap[p.id] !== false,
+      }));
+
+      const res = await fetch('/api/posts/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: post.id,
+          records,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        playSuccess();
+        setSubmitted(true);
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      }
+    } catch {}
+    finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md max-h-[85vh] flex flex-col rounded-3xl border border-[#CCFF00]/30 shadow-2xl overflow-hidden bg-[#0A0C10]">
+        
+        {/* Header */}
+        <div className="p-5 border-b border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-[#CCFF00]/15 border border-[#CCFF00]/30 text-[#CCFF00] flex items-center justify-center">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-outfit font-black text-white text-base">Verify Match Attendance</h3>
+              <p className="text-[11px] text-[#6b6b80]">Mark verified athletes & record no-shows</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-[#a0a0b8] hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-5 flex-1 overflow-y-auto space-y-3">
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-6 h-6 animate-spin text-[#CCFF00]" />
+            </div>
+          ) : participants.length === 0 ? (
+            <p className="text-xs text-center text-[#6b6b80] py-8">No joined athletes recorded for this lobby.</p>
+          ) : (
+            participants.map((p) => {
+              const attended = attendanceMap[p.id] !== false;
+
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/10"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Avatar user={p} size="sm" />
+                    <div>
+                      <p className="text-xs font-bold text-white">{p.name}</p>
+                      <p className="text-[10px] text-[#6b6b80]">{p.hostel}</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => toggleAttendance(p.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      attended
+                        ? 'bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/40 shadow-sm'
+                        : 'bg-[#FF2A55]/15 text-[#FF2A55] border border-[#FF2A55]/40'
+                    }`}
+                  >
+                    {attended ? <><UserCheck className="w-3.5 h-3.5" /> Attended</> : <><UserX className="w-3.5 h-3.5" /> No-Show</>}
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-white/10 bg-[#08090C]">
+          <button
+            onClick={handleSaveAttendance}
+            disabled={submitting || loading || participants.length === 0 || submitted}
+            className="btn-volt w-full flex items-center justify-center gap-2 py-3"
+          >
+            {submitting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : submitted ? (
+              <><Check className="w-4 h-4" /> Attendance Confirmed!</>
+            ) : (
+              <><Shield className="w-4 h-4" /> Submit Verified Roster</>
+            )}
+          </button>
         </div>
       </motion.div>
     </>
@@ -281,7 +430,19 @@ function CreatePostModal({ onClose, onCreated }: { onClose: () => void; onCreate
 }
 
 // ── Post Card ───────────────────────────────────────────────────────────────
-function PostCard({ post, onJoined, onViewPlayers }: { post: any; onJoined: () => void; onViewPlayers: (post: any) => void }) {
+function PostCard({
+  post,
+  onJoined,
+  onViewPlayers,
+  onOpenChat,
+  onOpenAttendance,
+}: {
+  post: any;
+  onJoined: () => void;
+  onViewPlayers: (post: any) => void;
+  onOpenChat: (post: any) => void;
+  onOpenAttendance: (post: any) => void;
+}) {
   const { currentUser } = useUIStore();
   const [joining, setJoining] = useState(false);
   const [joined, setJoined] = useState(false);
@@ -424,6 +585,26 @@ function PostCard({ post, onJoined, onViewPlayers }: { post: any; onJoined: () =
           <Eye className="w-3.5 h-3.5" />Players
         </button>
 
+        {/* Tactical Lobby Chat Trigger */}
+        <button
+          onClick={() => { playClick(); onOpenChat(post); }}
+          className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-[#CCFF00]/10 text-[#CCFF00] hover:text-white tactile-press"
+          style={{ border: '1px solid rgba(204,255,0,0.25)' }}
+        >
+          <MessageSquare className="w-3.5 h-3.5 text-[#CCFF00]" /> Chat & Pings
+        </button>
+
+        {/* Host Attendance Button */}
+        {isOwner && (
+          <button
+            onClick={() => { playClick(); onOpenAttendance(post); }}
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all hover:bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 tactile-press"
+            style={{ border: '1px solid rgba(52,211,153,0.3)' }}
+          >
+            <Shield className="w-3.5 h-3.5" /> Attendance
+          </button>
+        )}
+
         {/* WhatsApp Share */}
         <button
           onClick={handleWhatsApp}
@@ -445,7 +626,7 @@ function PostCard({ post, onJoined, onViewPlayers }: { post: any; onJoined: () =
 
         {isOwner ? (
           <span className="text-xs font-bold text-[#CCFF00] px-4 py-2 rounded-xl stat-mono" style={{ background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.3)' }}>
-            HOST LOBBY
+            HOST
           </span>
         ) : joined ? (
           <span className="flex items-center gap-1.5 text-xs font-bold text-[#CCFF00] px-4 py-2 rounded-xl stat-mono" style={{ background: 'rgba(204,255,0,0.1)', border: '1px solid rgba(204,255,0,0.3)' }}>
@@ -477,6 +658,8 @@ export default function FeedPage() {
   const [sport, setSport] = useState('All');
   const [showCreate, setShowCreate] = useState(false);
   const [viewPost, setViewPost] = useState<any>(null);
+  const [chatPost, setChatPost] = useState<any>(null);
+  const [attendancePost, setAttendancePost] = useState<any>(null);
   const [showMyMatches, setShowMyMatches] = useState(false);
 
   const fetchPosts = useCallback(async () => {
@@ -492,7 +675,7 @@ export default function FeedPage() {
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
   useEffect(() => {
-    const t = setInterval(fetchPosts, 30000);
+    const t = setInterval(fetchPosts, 25000);
     return () => clearInterval(t);
   }, [fetchPosts]);
 
@@ -542,9 +725,14 @@ export default function FeedPage() {
                           <p className="text-sm font-bold text-white font-[family-name:var(--font-outfit)]">{p.sport} at {p.ground}</p>
                           <p className="text-xs text-[#6b6b80] stat-mono">{p.currentPlayers}/{p.maxPlayers} players joined</p>
                         </div>
-                        <button onClick={() => { playClick(); setViewPost(p); }} className="text-xs font-bold text-[#CCFF00] flex items-center gap-1">
-                          <Eye className="w-3 h-3" />View
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => { playClick(); setAttendancePost(p); }} className="text-xs font-bold text-emerald-400 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                            <Shield className="w-3 h-3" />Attendance
+                          </button>
+                          <button onClick={() => { playClick(); setViewPost(p); }} className="text-xs font-bold text-[#CCFF00] flex items-center gap-1">
+                            <Eye className="w-3 h-3" />View
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -600,7 +788,14 @@ export default function FeedPage() {
         ) : (
           <div className="space-y-4">
             {posts.map(p => (
-              <PostCard key={p.id} post={p} onJoined={fetchPosts} onViewPlayers={setViewPost} />
+              <PostCard
+                key={p.id}
+                post={p}
+                onJoined={fetchPosts}
+                onViewPlayers={setViewPost}
+                onOpenChat={setChatPost}
+                onOpenAttendance={setAttendancePost}
+              />
             ))}
           </div>
         )}
@@ -618,7 +813,18 @@ export default function FeedPage() {
         <AnimatePresence>
           {showCreate && <CreatePostModal onClose={() => setShowCreate(false)} onCreated={fetchPosts} />}
           {viewPost && <ParticipantsModal post={viewPost} onClose={() => setViewPost(null)} />}
+          {attendancePost && <AttendanceCheckoffModal post={attendancePost} onClose={() => setAttendancePost(null)} />}
         </AnimatePresence>
+
+        {/* In-Lobby Tactical Chat Drawer */}
+        <LobbyChatDrawer
+          postId={chatPost?.id || ''}
+          sport={chatPost?.sport || 'Match'}
+          ground={chatPost?.ground}
+          isOpen={Boolean(chatPost)}
+          onClose={() => setChatPost(null)}
+          currentUser={currentUser}
+        />
       </div>
     </main>
   );

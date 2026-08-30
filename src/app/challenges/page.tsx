@@ -4,19 +4,19 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Swords, Trophy, Zap, Plus, X, Clock, MapPin, Users, Shield, Check,
-  AlertCircle, Loader2, Flame, Award, ThumbsUp, Sparkles, TrendingUp
+  AlertCircle, Loader2, Flame, Award, ThumbsUp, Sparkles, TrendingUp, AlertTriangle
 } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import Link from 'next/link';
-import { sound } from '@/lib/sound';
+import { sound, playClick, playDuel, playSuccess, playCoin } from '@/lib/sound';
 
 const SPORTS = ['All', 'Cricket', 'Football', 'Badminton', 'Basketball', 'Table Tennis', 'Volleyball', 'Kabaddi', 'Tennis', 'Chess'];
 const GROUNDS = ['Main Sports Arena', 'Cricket Nets Arena', 'Basketball Center Court', 'Indoor Badminton Complex', 'Table Tennis Hall', 'Volleyball Court', 'Athletic Complex', 'Outdoor Multi-Courts'];
 const SPORT_EMOJIS: Record<string, string> = { Cricket: '🏏', Football: '⚽', Badminton: '🏸', Basketball: '🏀', 'Table Tennis': '🏓', Volleyball: '🏐', Kabaddi: '🤼', Tennis: '🎾', Chess: '♟️', default: '🏅' };
 
 function getTier(rating: number) {
-  if (rating >= 2000) return { label: 'Champion', emoji: '👑', color: '#ffd60a' };
-  if (rating >= 1800) return { label: 'Diamond', emoji: '💎', color: '#00f5d4' };
+  if (rating >= 2000) return { label: 'Champion', emoji: '👑', color: '#CCFF00' };
+  if (rating >= 1800) return { label: 'Diamond', emoji: '💎', color: '#00F0FF' };
   if (rating >= 1600) return { label: 'Platinum', emoji: '⚡', color: '#a855f7' };
   if (rating >= 1400) return { label: 'Gold', emoji: '🥇', color: '#f59e0b' };
   if (rating >= 1200) return { label: 'Silver', emoji: '🥈', color: '#94a3b8' };
@@ -24,7 +24,6 @@ function getTier(rating: number) {
   return { label: 'Rookie', emoji: '🌱', color: '#6b6b80' };
 }
 
-// Calculate estimated win percentage based on ELO delta
 function getWinProbability(ratingA: number, ratingB: number) {
   const delta = ratingB - ratingA;
   const prob = 1 / (1 + Math.pow(10, delta / 400));
@@ -40,7 +39,7 @@ interface Challenge {
   stake_points: number;
   ground: string;
   match_time: string;
-  status: 'open' | 'accepted' | 'completed' | 'cancelled';
+  status: 'open' | 'accepted' | 'awaiting_confirmation' | 'completed' | 'disputed' | 'declined' | 'cancelled';
   winner_id: string | null;
   created_at: string;
   challenger_name?: string;
@@ -49,6 +48,13 @@ interface Challenge {
   opponent_name?: string;
   opponent_avatar?: string;
   opponent_rating?: number;
+  reported_winner_id?: string | null;
+  reported_loser_id?: string | null;
+  reported_score?: string | null;
+  reported_by_id?: string | null;
+  reported_by_name?: string | null;
+  reported_at?: string | null;
+  dispute_reason?: string | null;
 }
 
 export default function ChallengesPage() {
@@ -56,9 +62,13 @@ export default function ChallengesPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSport, setSelectedSport] = useState('All');
-  const [tab, setTab] = useState<'open' | 'my' | 'completed'>('open');
+  const [tab, setTab] = useState<'open' | 'my' | 'pending' | 'completed'>('open');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState<Challenge | null>(null);
+  const [showDisputeModal, setShowDisputeModal] = useState<Challenge | null>(null);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputing, setDisputing] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [reactionCounts, setReactionCounts] = useState<Record<string, { fire: number; hype: number }>>({});
 
   // Create Form State
@@ -91,7 +101,7 @@ export default function ChallengesPage() {
 
   useEffect(() => {
     fetchChallenges();
-    const interval = setInterval(fetchChallenges, 15000);
+    const interval = setInterval(fetchChallenges, 12000);
     return () => clearInterval(interval);
   }, []);
 
@@ -100,7 +110,7 @@ export default function ChallengesPage() {
     if (!isAuthenticated) return;
     setError('');
     setCreating(true);
-    sound.playBattle();
+    playDuel();
 
     try {
       const res = await fetch('/api/challenges', {
@@ -116,7 +126,7 @@ export default function ChallengesPage() {
       });
       const data = await res.json();
       if (data.success) {
-        sound.playCoin();
+        playCoin();
         try {
           const { emitCoinEarn } = await import('@/hooks/useCoinEarn');
           const { useUIStore } = await import('@/store/uiStore');
@@ -138,7 +148,7 @@ export default function ChallengesPage() {
 
   const handleAccept = async (challengeId: string) => {
     if (!isAuthenticated) return;
-    sound.playBattle();
+    playDuel();
     try {
       const res = await fetch('/api/challenges', {
         method: 'PATCH',
@@ -147,7 +157,7 @@ export default function ChallengesPage() {
       });
       const data = await res.json();
       if (data.success) {
-        sound.playVictory();
+        playSuccess();
         try {
           const { emitCoinEarn } = await import('@/hooks/useCoinEarn');
           const { useUIStore } = await import('@/store/uiStore');
@@ -161,34 +171,31 @@ export default function ChallengesPage() {
     }
   };
 
+  // 1. Submit match report -> shifts to awaiting_confirmation
   const handleReportResult = async () => {
     if (!showReportModal || !currentUser) return;
     setReporting(true);
-    sound.playVictory();
+    playClick();
 
     try {
       const isMeWinner = parseInt(myScore) > parseInt(oppScore);
-      const winnerId = isMeWinner ? currentUser.id : showReportModal.opponent_id;
+      const winnerId = isMeWinner ? currentUser.id : (showReportModal.opponent_id || showReportModal.challenger_id);
+
       const res = await fetch('/api/challenges', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           challengeId: showReportModal.id,
-          action: 'complete',
+          action: 'report_score',
           winnerId,
+          myScore,
+          oppScore,
+          score: `${myScore} - ${oppScore}`,
         }),
       });
       const data = await res.json();
       if (data.success) {
-        if (isMeWinner) {
-          const stake = showReportModal.stake_points || 25;
-          try {
-            const { emitCoinEarn } = await import('@/hooks/useCoinEarn');
-            const { useUIStore } = await import('@/store/uiStore');
-            useUIStore.getState().updateCoins(stake, 'Won Ranked Duel');
-            emitCoinEarn({ amount: stake, reason: `Victory in Ranked Duel! (+${stake} 🪙)`, icon: '👑' });
-          } catch {}
-        }
+        playSuccess();
         setShowReportModal(null);
         fetchChallenges();
       }
@@ -199,8 +206,73 @@ export default function ChallengesPage() {
     }
   };
 
+  // 2. Opponent confirms match result -> ELO updates & coins transferred
+  const handleConfirmResult = async (challenge: Challenge) => {
+    if (!currentUser) return;
+    setConfirmingId(challenge.id);
+    playSuccess();
+
+    try {
+      const res = await fetch('/api/challenges', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          challengeId: challenge.id,
+          action: 'confirm_result',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const isWinner = challenge.reported_winner_id === currentUser.id;
+        if (isWinner) {
+          const stake = challenge.stake_points || 25;
+          try {
+            const { emitCoinEarn } = await import('@/hooks/useCoinEarn');
+            const { useUIStore } = await import('@/store/uiStore');
+            useUIStore.getState().updateCoins(stake, 'Won Ranked Duel');
+            emitCoinEarn({ amount: stake, reason: `Duel Victory Confirmed! (+${stake} 🪙)`, icon: '👑' });
+          } catch {}
+        }
+        fetchChallenges();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setConfirmingId(null);
+    }
+  };
+
+  // 3. Opponent disputes result -> sent to admin queue
+  const handleDisputeSubmit = async () => {
+    if (!showDisputeModal || !currentUser) return;
+    setDisputing(true);
+    playClick();
+
+    try {
+      const res = await fetch('/api/challenges', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          challengeId: showDisputeModal.id,
+          action: 'dispute_result',
+          reason: disputeReason || 'Score reported does not match match outcome',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowDisputeModal(null);
+        setDisputeReason('');
+        fetchChallenges();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDisputing(false);
+    }
+  };
+
   const handleReact = (id: string, type: 'fire' | 'hype') => {
-    sound.playClick();
+    playClick();
     setReactionCounts(prev => {
       const current = prev[id] || { fire: 3, hype: 2 };
       return {
@@ -210,49 +282,55 @@ export default function ChallengesPage() {
     });
   };
 
+  const pendingVerificationCount = currentUser
+    ? challenges.filter(c => c.status === 'awaiting_confirmation' && (c.challenger_id === currentUser.id || c.opponent_id === currentUser.id)).length
+    : 0;
+
   const filteredChallenges = challenges.filter(c => {
     if (selectedSport !== 'All' && c.sport !== selectedSport) return false;
     if (tab === 'open') return c.status === 'open';
     if (tab === 'my') return currentUser && (c.challenger_id === currentUser.id || c.opponent_id === currentUser.id);
+    if (tab === 'pending') return c.status === 'awaiting_confirmation' || c.status === 'disputed';
     if (tab === 'completed') return c.status === 'completed';
     return true;
   });
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] pt-24 pb-20 px-4 text-white">
+    <div className="min-h-screen bg-[#040507] pt-24 pb-20 px-4 text-white">
       <div className="max-w-6xl mx-auto">
         
         {/* Top Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div>
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold bg-[#7b2ff7]/15 text-[#00f5d4] border border-[#7b2ff7]/30 mb-3">
-              <Swords className="w-3.5 h-3.5" /> 1v1 & Squad Challenge Arena
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 mb-3">
+              <Swords className="w-3.5 h-3.5" /> 1v1 & Squad Duel Arena
             </div>
             <h1 className="text-4xl font-black font-outfit text-white flex items-center gap-3">
-              Challenge <span style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Arena</span>
+              Challenge <span className="text-[#CCFF00]">Arena</span>
             </h1>
-            <p className="text-[#a0a0b8] text-sm mt-1">Issue ranked duels, stake ranking points, and battle for global tier prestige.</p>
+            <p className="text-[#a0a0b8] text-sm mt-1">
+              Issue ranked duels with Anti-Cheat 2-sided score verification and stake ELO prestige.
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <button
                 onClick={() => {
-                  sound.playClick();
+                  playClick();
                   setShowCreateModal(true);
                 }}
-                className="flex items-center gap-2 rounded-2xl px-6 py-3.5 font-bold text-white shadow-xl transition-all hover:scale-105"
-                style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)', boxShadow: '0 0 25px rgba(123,47,247,0.3)' }}
+                className="btn-volt flex items-center gap-2"
               >
-                <Plus className="w-5 h-5" /> Post A Challenge
+                <Plus className="w-4 h-4" /> Issue Duel
               </button>
             ) : (
               <Link
                 href="/login"
-                onClick={() => sound.playClick()}
-                className="flex items-center gap-2 rounded-2xl px-6 py-3.5 font-bold text-white border border-white/20 bg-white/5 hover:bg-white/10 transition-all"
+                onClick={() => playClick()}
+                className="flex items-center gap-2 rounded-xl px-5 py-3 font-bold text-white border border-white/20 bg-white/5 hover:bg-white/10 transition-all text-xs"
               >
-                Sign In to Challenge
+                Sign In to Duel
               </Link>
             )}
           </div>
@@ -261,24 +339,29 @@ export default function ChallengesPage() {
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 border-b border-white/10 pb-4 mb-6 overflow-x-auto scrollbar-none">
           {[
-            { id: 'open', label: '⚡ Open Challenges', count: challenges.filter(c => c.status === 'open').length },
+            { id: 'open', label: '⚡ Open Duels', count: challenges.filter(c => c.status === 'open').length },
             { id: 'my', label: '🛡️ My Duels', count: currentUser ? challenges.filter(c => c.challenger_id === currentUser.id || c.opponent_id === currentUser.id).length : 0 },
+            { id: 'pending', label: '⏳ Verification Pending', count: pendingVerificationCount, alert: pendingVerificationCount > 0 },
             { id: 'completed', label: '🏆 Hall of Results', count: challenges.filter(c => c.status === 'completed').length },
           ].map(t => (
             <button
               key={t.id}
               onClick={() => {
-                sound.playClick();
+                playClick();
                 setTab(t.id as any);
               }}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
                 tab === t.id
-                  ? 'bg-white/10 text-[#00f5d4] border border-[#00f5d4]/40 shadow-lg shadow-[#00f5d4]/5'
+                  ? 'bg-[#CCFF00] text-[#040507] font-black shadow-lg shadow-[#CCFF00]/10'
                   : 'text-[#6b6b80] hover:text-white hover:bg-white/5'
               }`}
             >
               <span>{t.label}</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/5 font-mono">{t.count}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
+                t.alert ? 'bg-[#FF2A55] text-white animate-pulse' : tab === t.id ? 'bg-[#040507]/20 text-[#040507]' : 'bg-white/10 text-white'
+              }`}>
+                {t.count}
+              </span>
             </button>
           ))}
         </div>
@@ -289,12 +372,12 @@ export default function ChallengesPage() {
             <button
               key={s}
               onClick={() => {
-                sound.playClick();
+                playClick();
                 setSelectedSport(s);
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
                 selectedSport === s
-                  ? 'bg-[#7b2ff7] text-white border border-[#7b2ff7]'
+                  ? 'bg-white/15 text-[#CCFF00] border border-[#CCFF00]/40'
                   : 'bg-white/5 text-[#a0a0b8] hover:text-white border border-white/5'
               }`}
             >
@@ -307,19 +390,18 @@ export default function ChallengesPage() {
         {/* Challenges Grid */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24">
-            <Loader2 className="w-10 h-10 text-[#00f5d4] animate-spin mb-4" />
-            <p className="text-[#6b6b80] text-sm">Scanning Challenge Arena...</p>
+            <Loader2 className="w-10 h-10 text-[#CCFF00] animate-spin mb-4" />
+            <p className="text-[#6b6b80] text-sm font-mono">Syncing Duel Radar...</p>
           </div>
         ) : filteredChallenges.length === 0 ? (
-          <div className="text-center py-20 rounded-3xl border border-white/5 bg-white/[0.01]">
+          <div className="text-center py-20 rounded-3xl border border-white/5 bg-[#0A0C10]/60">
             <Swords className="w-12 h-12 text-[#4a4a5a] mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-white mb-1 font-outfit">No Active Challenges Found</h3>
-            <p className="text-xs text-[#6b6b80] max-w-sm mx-auto mb-6">Be the first to issue a challenge and stake ranking points!</p>
+            <h3 className="text-lg font-bold text-white mb-1 font-outfit">No Active Duels Found</h3>
+            <p className="text-xs text-[#6b6b80] max-w-sm mx-auto mb-6">Be the first to issue a duel and stake ranking points!</p>
             {isAuthenticated && (
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-6 py-3 rounded-2xl font-bold text-xs text-white"
-                style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}
+                className="btn-volt"
               >
                 Create Challenge Now
               </button>
@@ -335,13 +417,23 @@ export default function ChallengesPage() {
               const oTier = getTier(oRating);
               const reactions = reactionCounts[c.id] || { fire: 4 + (i % 3), hype: 3 + (i % 2) };
 
+              const isParticipant = currentUser && (c.challenger_id === currentUser.id || c.opponent_id === currentUser.id);
+              const isReporter = currentUser && c.reported_by_id === currentUser.id;
+              const isVerifier = isParticipant && !isReporter && c.status === 'awaiting_confirmation';
+
               return (
                 <motion.div
                   key={c.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="rounded-3xl border border-white/10 bg-[#111118] p-6 shadow-xl relative overflow-hidden flex flex-col justify-between hover:border-white/25 transition-all group"
+                  transition={{ delay: i * 0.04 }}
+                  className={`rounded-3xl border p-6 shadow-xl relative overflow-hidden flex flex-col justify-between transition-all ${
+                    c.status === 'awaiting_confirmation'
+                      ? 'border-[#FFD700]/40 bg-[#0E0F14] shadow-[0_0_25px_rgba(255,215,0,0.06)]'
+                      : c.status === 'disputed'
+                      ? 'border-[#FF2A55]/40 bg-[#0E0A0C]'
+                      : 'border-white/10 bg-[#0A0C10] hover:border-white/20'
+                  }`}
                 >
                   {/* Top Bar */}
                   <div>
@@ -351,14 +443,14 @@ export default function ChallengesPage() {
                         <div>
                           <h4 className="font-outfit font-black text-white text-base">{c.sport}</h4>
                           <p className="text-[11px] text-[#6b6b80] flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-[#00f5d4]" /> {c.ground}
+                            <MapPin className="w-3 h-3 text-[#00F0FF]" /> {c.ground}
                           </p>
                         </div>
                       </div>
 
                       <div className="text-right">
                         <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                          c.mode === 'ranked' ? 'bg-[#ffd60a]/15 text-[#ffd60a] border border-[#ffd60a]/30' : 'bg-blue-500/15 text-blue-400'
+                          c.mode === 'ranked' ? 'bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30' : 'bg-blue-500/15 text-blue-400'
                         }`}>
                           {c.mode === 'ranked' ? `⚡ ${c.stake_points} RP Stake` : 'Casual'}
                         </span>
@@ -384,7 +476,7 @@ export default function ChallengesPage() {
                         </div>
 
                         {/* VS Badge */}
-                        <div className="h-7 w-7 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-black flex items-center justify-center shrink-0">
+                        <div className="h-7 w-7 rounded-full bg-[#FF2A55]/20 border border-[#FF2A55]/40 text-[#FF2A55] text-[10px] font-black flex items-center justify-center shrink-0">
                           VS
                         </div>
 
@@ -415,13 +507,13 @@ export default function ChallengesPage() {
                       {/* ELO Win Probability Bar */}
                       {c.opponent_name && (
                         <div>
-                          <div className="flex justify-between text-[9px] font-bold text-[#6b6b80] mb-1">
-                            <span>{winProb}% Win Chance</span>
+                          <div className="flex justify-between text-[9px] font-bold text-[#6b6b80] mb-1 font-mono">
+                            <span>{winProb}% Win Prob</span>
                             <span>{100 - winProb}%</span>
                           </div>
                           <div className="h-1.5 rounded-full bg-white/10 overflow-hidden flex">
-                            <div style={{ width: `${winProb}%` }} className="bg-[#7b2ff7]" />
-                            <div style={{ width: `${100 - winProb}%` }} className="bg-[#00f5d4]" />
+                            <div style={{ width: `${winProb}%` }} className="bg-[#CCFF00]" />
+                            <div style={{ width: `${100 - winProb}%` }} className="bg-[#00F0FF]" />
                           </div>
                         </div>
                       )}
@@ -430,13 +522,13 @@ export default function ChallengesPage() {
 
                   {/* Bottom Action Area */}
                   <div>
-                    <div className="flex items-center justify-between text-xs text-[#6b6b80] mb-4">
+                    <div className="flex items-center justify-between text-xs text-[#6b6b80] mb-4 font-mono">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
                         {new Date(c.match_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
                       </span>
 
-                      {/* Cheering Reactions */}
+                      {/* Reactions */}
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleReact(c.id, 'fire')}
@@ -446,55 +538,109 @@ export default function ChallengesPage() {
                         </button>
                         <button
                           onClick={() => handleReact(c.id, 'hype')}
-                          className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-yellow-400 border border-white/5 transition-all"
+                          className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-[#CCFF00] border border-white/5 transition-all"
                         >
                           ⚡ {reactions.hype}
                         </button>
                       </div>
                     </div>
 
-                    {/* Status / Accept Button */}
+                    {/* STATUS 1: OPEN */}
                     {c.status === 'open' && (
                       currentUser && currentUser.id !== c.challenger_id ? (
                         <button
                           onClick={() => handleAccept(c.id)}
-                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs text-white shadow-lg transition-all hover:scale-[1.02]"
-                          style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}
+                          className="btn-volt w-full flex items-center justify-center gap-2"
                         >
-                          <Swords className="w-3.5 h-3.5" /> Accept Challenge
+                          <Swords className="w-3.5 h-3.5" /> Accept Duel
                         </button>
                       ) : currentUser && currentUser.id === c.challenger_id ? (
-                        <div className="text-center py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-[#00f5d4]">
-                          🎯 Your Open Challenge
+                        <div className="text-center py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-[#00F0FF]">
+                          🎯 Your Open Duel Call
                         </div>
                       ) : (
                         <Link
                           href="/login"
-                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs text-white bg-white/10 hover:bg-white/15 transition-all"
+                          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs text-white bg-white/10 hover:bg-white/15 transition-all"
                         >
                           Sign In to Accept
                         </Link>
                       )
                     )}
 
+                    {/* STATUS 2: ACCEPTED */}
                     {c.status === 'accepted' && (
-                      currentUser && (c.challenger_id === currentUser.id || c.opponent_id === currentUser.id) ? (
+                      isParticipant ? (
                         <button
                           onClick={() => setShowReportModal(c)}
-                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs text-white bg-[#ffd60a]/20 border border-[#ffd60a]/40 text-[#ffd60a] hover:bg-[#ffd60a]/30 transition-all"
+                          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs bg-[#FFD700]/15 border border-[#FFD700]/40 text-[#FFD700] hover:bg-[#FFD700]/25 transition-all"
                         >
                           <Trophy className="w-3.5 h-3.5" /> Report Match Score
                         </button>
                       ) : (
                         <div className="text-center py-2.5 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-xs font-bold text-yellow-400">
-                          ⚔️ Match In Progress
+                          ⚔️ Duel In Progress
                         </div>
                       )
                     )}
 
+                    {/* STATUS 3: AWAITING CONFIRMATION (Anti-Cheat Handshake) */}
+                    {c.status === 'awaiting_confirmation' && (
+                      isVerifier ? (
+                        <div className="p-3 rounded-2xl bg-[#FFD700]/10 border border-[#FFD700]/40 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-[#FFD700] flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" /> Confirm Reported Score:
+                            </span>
+                            <span className="text-xs font-mono font-black text-white px-2 py-0.5 bg-white/10 rounded-lg">
+                              {c.reported_score}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#a0a0b8]">
+                            Reported by <b className="text-white">{c.reported_by_name}</b>. Confirm to finalize ELO.
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            <button
+                              onClick={() => handleConfirmResult(c)}
+                              disabled={confirmingId === c.id}
+                              className="py-2 rounded-xl text-xs font-black bg-[#CCFF00] text-[#040507] hover:bg-[#b8e600] flex items-center justify-center gap-1 active:scale-95 transition-all"
+                            >
+                              {confirmingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                              Confirm ✓
+                            </button>
+                            <button
+                              onClick={() => {
+                                playClick();
+                                setShowDisputeModal(c);
+                              }}
+                              className="py-2 rounded-xl text-xs font-black bg-[#FF2A55]/15 text-[#FF2A55] border border-[#FF2A55]/30 hover:bg-[#FF2A55]/25 flex items-center justify-center gap-1 active:scale-95 transition-all"
+                            >
+                              <AlertTriangle className="w-3 h-3" /> Dispute
+                            </button>
+                          </div>
+                        </div>
+                      ) : isReporter ? (
+                        <div className="text-center py-2.5 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 text-xs font-bold text-[#FFD700] flex items-center justify-center gap-2">
+                          <Clock className="w-3.5 h-3.5 animate-spin" /> Awaiting Opponent Verification ({c.reported_score})
+                        </div>
+                      ) : (
+                        <div className="text-center py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-[#a0a0b8] flex items-center justify-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5" /> Result Pending Handshake
+                        </div>
+                      )
+                    )}
+
+                    {/* STATUS 4: DISPUTED */}
+                    {c.status === 'disputed' && (
+                      <div className="text-center py-2.5 rounded-xl bg-[#FF2A55]/15 border border-[#FF2A55]/30 text-xs font-bold text-[#FF2A55] flex items-center justify-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Disputed — Under Admin Moderation
+                      </div>
+                    )}
+
+                    {/* STATUS 5: COMPLETED */}
                     {c.status === 'completed' && (
                       <div className="text-center py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-400 flex items-center justify-center gap-1.5">
-                        <Award className="w-3.5 h-3.5" /> Match Completed
+                        <Award className="w-3.5 h-3.5" /> Mutually Verified Result
                       </div>
                     )}
                   </div>
@@ -507,19 +653,19 @@ export default function ChallengesPage() {
         {/* ── CREATE CHALLENGE MODAL ── */}
         <AnimatePresence>
           {showCreateModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.92, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.92, y: 20 }}
-                className="w-full max-w-lg rounded-3xl border border-white/15 bg-[#111118] p-6 shadow-2xl relative"
+                className="w-full max-w-lg rounded-3xl border border-white/15 bg-[#0A0C10] p-6 shadow-2xl relative"
               >
                 <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
                   <div className="flex items-center gap-2.5">
-                    <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#7b2ff7]/20 border border-[#7b2ff7]/40 text-[#00f5d4]">
+                    <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#CCFF00]/15 border border-[#CCFF00]/30 text-[#CCFF00]">
                       <Swords className="h-5 w-5" />
                     </div>
-                    <h3 className="font-outfit font-black text-xl text-white">Post 1v1 Challenge</h3>
+                    <h3 className="font-outfit font-black text-xl text-white">Post 1v1 Duel</h3>
                   </div>
                   <button onClick={() => setShowCreateModal(false)} className="text-[#a0a0b8] hover:text-white">
                     <X className="h-5 w-5" />
@@ -538,10 +684,10 @@ export default function ChallengesPage() {
                     <select
                       value={sport}
                       onChange={e => setSport(e.target.value)}
-                      className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00f5d4]"
+                      className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00]"
                     >
                       {SPORTS.filter(s => s !== 'All').map(s => (
-                        <option key={s} value={s} className="bg-[#111118]">{s}</option>
+                        <option key={s} value={s} className="bg-[#0A0C10]">{s}</option>
                       ))}
                     </select>
                   </div>
@@ -552,10 +698,10 @@ export default function ChallengesPage() {
                       <select
                         value={mode}
                         onChange={e => setMode(e.target.value as any)}
-                        className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00f5d4]"
+                        className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00]"
                       >
-                        <option value="ranked" className="bg-[#111118]">Ranked (Stake RP)</option>
-                        <option value="casual" className="bg-[#111118]">Casual Play</option>
+                        <option value="ranked" className="bg-[#0A0C10]">Ranked (Stake RP)</option>
+                        <option value="casual" className="bg-[#0A0C10]">Casual Play</option>
                       </select>
                     </div>
 
@@ -568,11 +714,11 @@ export default function ChallengesPage() {
                           max={100}
                           value={stakePoints}
                           onChange={e => setStakePoints(parseInt(e.target.value) || 25)}
-                          className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00f5d4]"
+                          className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00]"
                         />
                       </div>
                     ) : (
-                      <div className="flex items-center text-xs text-[#6b6b80] pt-6">No rating points at risk</div>
+                      <div className="flex items-center text-xs text-[#6b6b80] pt-6 font-mono">No rating points at risk</div>
                     )}
                   </div>
 
@@ -581,10 +727,10 @@ export default function ChallengesPage() {
                     <select
                       value={ground}
                       onChange={e => setGround(e.target.value)}
-                      className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00f5d4]"
+                      className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00]"
                     >
                       {GROUNDS.map(g => (
-                        <option key={g} value={g} className="bg-[#111118]">{g}</option>
+                        <option key={g} value={g} className="bg-[#0A0C10]">{g}</option>
                       ))}
                     </select>
                   </div>
@@ -595,18 +741,17 @@ export default function ChallengesPage() {
                       type="datetime-local"
                       value={matchTime}
                       onChange={e => setMatchTime(e.target.value)}
-                      className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#00f5d4]"
+                      className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-[#CCFF00]"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={creating}
-                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-white transition-all shadow-xl disabled:opacity-50 mt-2"
-                    style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}
+                    className="btn-volt w-full flex items-center justify-center gap-2 mt-2"
                   >
                     {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Swords className="w-4 h-4" />}
-                    Issue Challenge to Arena
+                    Broadcast Duel Challenge
                   </button>
                 </form>
               </motion.div>
@@ -614,20 +759,20 @@ export default function ChallengesPage() {
           )}
         </AnimatePresence>
 
-        {/* ── REPORT SCORE MODAL ── */}
+        {/* ── REPORT SCORE MODAL (Anti-Cheat Notice Included) ── */}
         <AnimatePresence>
           {showReportModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
               <motion.div
                 initial={{ opacity: 0, scale: 0.92 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.92 }}
-                className="w-full max-w-md rounded-3xl border border-white/15 bg-[#111118] p-6 shadow-2xl relative"
+                className="w-full max-w-md rounded-3xl border border-white/15 bg-[#0A0C10] p-6 shadow-2xl relative"
               >
                 <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
                   <div className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-[#ffd60a]" />
-                    <h3 className="font-outfit font-black text-xl text-white">Record Match Score</h3>
+                    <Trophy className="h-5 w-5 text-[#CCFF00]" />
+                    <h3 className="font-outfit font-black text-xl text-white">Report Duel Score</h3>
                   </div>
                   <button onClick={() => setShowReportModal(null)} className="text-[#a0a0b8] hover:text-white">
                     <X className="h-5 w-5" />
@@ -635,46 +780,105 @@ export default function ChallengesPage() {
                 </div>
 
                 <div className="space-y-4 mb-6">
-                  <p className="text-xs text-[#a0a0b8]">Enter final set/point score to declare the duel winner and recalculate ELO ratings:</p>
+                  <p className="text-xs text-[#a0a0b8]">
+                    Enter final set/points score. <b className="text-white">Your opponent will receive a confirmation prompt</b> before ELO ratings settle.
+                  </p>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[11px] font-bold text-[#00f5d4] uppercase mb-1">Your Score</label>
+                      <label className="block text-[11px] font-bold text-[#CCFF00] uppercase mb-1">Your Score</label>
                       <input
                         type="number"
                         min={0}
                         value={myScore}
                         onChange={e => setMyScore(e.target.value)}
-                        className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-lg font-black text-white focus:outline-none focus:border-[#00f5d4]"
+                        className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-lg font-black text-white focus:outline-none focus:border-[#CCFF00]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-red-400 uppercase mb-1">Opponent Score</label>
+                      <label className="block text-[11px] font-bold text-[#FF2A55] uppercase mb-1">Opponent Score</label>
                       <input
                         type="number"
                         min={0}
                         value={oppScore}
                         onChange={e => setOppScore(e.target.value)}
-                        className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-lg font-black text-white focus:outline-none focus:border-red-400"
+                        className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-lg font-black text-white focus:outline-none focus:border-[#FF2A55]"
                       />
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-[#ffd60a]/10 border border-[#ffd60a]/20 text-xs text-[#ffd60a] flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 shrink-0" />
-                    <span>Winner receives +{showReportModal.stake_points || 25} RP ELO boost!</span>
+                  <div className="p-3 rounded-2xl bg-[#CCFF00]/10 border border-[#CCFF00]/20 text-xs text-[#CCFF00] flex items-center gap-2">
+                    <Shield className="h-4 w-4 shrink-0" />
+                    <span>Anti-Cheat Verification: Opponent has 24h to verify or dispute.</span>
                   </div>
                 </div>
 
                 <button
                   onClick={handleReportResult}
                   disabled={reporting}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-white transition-all shadow-xl"
-                  style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}
+                  className="btn-volt w-full flex items-center justify-center gap-2"
                 >
                   {reporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Award className="w-4 h-4" />}
-                  Confirm Result & Adjust ELO
+                  Submit For Opponent Handshake
                 </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* ── DISPUTE SCORE MODAL ── */}
+        <AnimatePresence>
+          {showDisputeModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.92 }}
+                className="w-full max-w-md rounded-3xl border border-[#FF2A55]/30 bg-[#0E0A0C] p-6 shadow-2xl relative"
+              >
+                <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+                  <div className="flex items-center gap-2 text-[#FF2A55]">
+                    <AlertTriangle className="h-5 w-5" />
+                    <h3 className="font-outfit font-black text-lg text-white">Dispute Match Result</h3>
+                  </div>
+                  <button onClick={() => setShowDisputeModal(null)} className="text-[#a0a0b8] hover:text-white">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-[#a0a0b8] mb-4">
+                  Disputing will freeze the match and alert the CourtMate moderation board for manual review.
+                </p>
+
+                <div className="mb-5">
+                  <label className="block text-xs font-bold text-white uppercase tracking-wider mb-2">
+                    Dispute Reason / Correct Score
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="e.g. Opponent reported 21-10 but actual score was 21-19 in my favor..."
+                    value={disputeReason}
+                    onChange={e => setDisputeReason(e.target.value)}
+                    className="w-full rounded-xl bg-white/5 border border-white/10 px-3.5 py-2.5 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#FF2A55]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setShowDisputeModal(null)}
+                    className="py-2.5 rounded-xl text-xs font-bold bg-white/10 text-white hover:bg-white/15"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDisputeSubmit}
+                    disabled={disputing}
+                    className="py-2.5 rounded-xl text-xs font-black bg-[#FF2A55] text-white hover:bg-[#e0244b] flex items-center justify-center gap-1.5"
+                  >
+                    {disputing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                    Submit Dispute
+                  </button>
+                </div>
               </motion.div>
             </div>
           )}

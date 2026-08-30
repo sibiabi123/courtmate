@@ -50,10 +50,33 @@ export async function GET(req: NextRequest) {
       sql += ' AND (c.challenger_id = ? OR c.challenged_id = ?)';
       args.push(userId, userId);
     }
-    sql += ' ORDER BY c.created_at DESC LIMIT 50';
+    sql += ' ORDER BY c.created_at DESC LIMIT 60';
 
     const rows = await db.query(sql, args);
-    return NextResponse.json({ success: true, challenges: rows });
+
+    // Format & unpack reported data from description if present
+    const challenges = rows.map((c: any) => {
+      let reportData: any = null;
+      if (c.description && typeof c.description === 'string' && c.description.startsWith('{')) {
+        try {
+          reportData = JSON.parse(c.description);
+        } catch {}
+      }
+
+      return {
+        ...c,
+        reported_winner_id: reportData?.reported_winner_id || null,
+        reported_loser_id: reportData?.reported_loser_id || null,
+        reported_score: reportData?.reported_score || null,
+        reported_by_id: reportData?.reported_by_id || null,
+        reported_by_name: reportData?.reported_by_name || null,
+        reported_at: reportData?.reported_at || null,
+        dispute_reason: reportData?.dispute_reason || null,
+        display_description: reportData?.original_description !== undefined ? reportData.original_description : c.description,
+      };
+    });
+
+    return NextResponse.json({ success: true, challenges });
   } catch (e) {
     return NextResponse.json({ success: false, error: String(e) }, { status: 500 });
   }
@@ -111,14 +134,14 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PATCH /api/challenges - accept / decline / complete a challenge
+// PATCH /api/challenges - accept / decline / report_score / confirm_result / dispute_result / complete
 export async function PATCH(req: NextRequest) {
   const user = getUser(req);
   if (!user) return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
 
   try {
     const body = await req.json();
-    const { challengeId, action, winnerId, score } = body;
+    const { challengeId, action, winnerId, score, myScore, oppScore, reason } = body;
 
     if (!challengeId || !action) {
       return NextResponse.json({ success: false, error: 'challengeId and action are required' }, { status: 400 });
@@ -129,9 +152,21 @@ export async function PATCH(req: NextRequest) {
     if (rows.length === 0) return NextResponse.json({ success: false, error: 'Challenge not found' }, { status: 404 });
     const challenge = rows[0] as any;
 
+    // Helper to extract existing description payload
+    let existingMeta: any = {};
+    if (challenge.description && typeof challenge.description === 'string' && challenge.description.startsWith('{')) {
+      try { existingMeta = JSON.parse(challenge.description); } catch {}
+    } else {
+      existingMeta = { original_description: challenge.description || '' };
+    }
+
+    // ── ACTION: ACCEPT ─────────────────────────────────────────────────────────────
     if (action === 'accept') {
       if (challenge.status !== 'open') {
         return NextResponse.json({ success: false, error: 'Challenge is not open for acceptance' }, { status: 400 });
+      }
+      if (challenge.challenger_id === user.userId) {
+        return NextResponse.json({ success: false, error: 'Cannot accept your own challenge' }, { status: 400 });
       }
       await db.execute(
         `UPDATE challenges SET status = 'accepted', challenged_id = ? WHERE id = ?`,
@@ -147,11 +182,167 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: true, message: 'Challenge accepted' });
     }
 
+    // ── ACTION: DECLINE ────────────────────────────────────────────────────────────
     if (action === 'decline') {
       await db.execute(`UPDATE challenges SET status = 'declined' WHERE id = ?`, [challengeId]);
       return NextResponse.json({ success: true, message: 'Challenge declined' });
     }
 
+    // ── ACTION: REPORT_SCORE (Anti-Cheat Handshake Step 1) ────────────────────────
+    if (action === 'report_score') {
+      const isParticipant = challenge.challenger_id === user.userId || challenge.challenged_id === user.userId;
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+      if (!isParticipant && !isAdmin) {
+        return NextResponse.json({ success: false, error: 'Only match participants can report scores' }, { status: 403 });
+      }
+
+      const scoreStr = score || (myScore !== undefined && oppScore !== undefined ? `${myScore}-${oppScore}` : 'Result Reported');
+      const chosenWinner = winnerId || (parseInt(myScore) > parseInt(oppScore) ? user.userId : (user.userId === challenge.challenger_id ? challenge.challenged_id : challenge.challenger_id));
+      const chosenLoser = chosenWinner === challenge.challenger_id ? challenge.challenged_id : challenge.challenger_id;
+
+      const reportMeta = {
+        ...existingMeta,
+        reported_winner_id: chosenWinner,
+        reported_loser_id: chosenLoser,
+        reported_score: scoreStr,
+        reported_by_id: user.userId,
+        reported_by_name: user.name,
+        reported_at: new Date().toISOString(),
+      };
+
+      await db.execute(
+        `UPDATE challenges SET status = 'awaiting_confirmation', description = ? WHERE id = ?`,
+        [JSON.stringify(reportMeta), challengeId]
+      );
+
+      // Notify the other player to confirm or dispute
+      const opponentId = user.userId === challenge.challenger_id ? challenge.challenged_id : challenge.challenger_id;
+      if (opponentId) {
+        const notifId = crypto.randomUUID();
+        await db.execute(
+          `INSERT INTO notifications (id, user_id, title, message, type, related_id, created_at)
+           VALUES (?, ?, ?, ?, 'result_pending', ?, ?)`,
+          [
+            notifId,
+            opponentId,
+            '⚔️ Confirm Match Result',
+            `${user.name} reported the match score as ${scoreStr}. Please confirm or dispute the result!`,
+            challengeId,
+            new Date().toISOString(),
+          ]
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Match score reported! Status changed to awaiting opponent confirmation.',
+        status: 'awaiting_confirmation',
+      });
+    }
+
+    // ── ACTION: CONFIRM_RESULT (Anti-Cheat Handshake Step 2) ──────────────────────
+    if (action === 'confirm_result') {
+      const isParticipant = challenge.challenger_id === user.userId || challenge.challenged_id === user.userId;
+      const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+      if (!isParticipant && !isAdmin) {
+        return NextResponse.json({ success: false, error: 'Unauthorized to confirm this match' }, { status: 403 });
+      }
+
+      const reportedWinner = existingMeta.reported_winner_id || winnerId;
+      const reportedLoser = existingMeta.reported_loser_id || (reportedWinner === challenge.challenger_id ? challenge.challenged_id : challenge.challenger_id);
+      const reportedScore = existingMeta.reported_score || score || 'Confirmed';
+
+      if (!reportedWinner) {
+        return NextResponse.json({ success: false, error: 'No reported winner found for this challenge' }, { status: 400 });
+      }
+
+      // Reporter cannot confirm their own report unless admin
+      if (existingMeta.reported_by_id === user.userId && !isAdmin) {
+        return NextResponse.json({ success: false, error: 'Waiting for your opponent to confirm this result' }, { status: 400 });
+      }
+
+      await db.execute(
+        `UPDATE challenges SET status = 'completed', winner_id = ? WHERE id = ?`,
+        [reportedWinner, challengeId]
+      );
+
+      // Log confirmed match result
+      const resultId = crypto.randomUUID();
+      await db.execute(
+        `INSERT INTO match_results (id, challenge_id, winner_ids, loser_ids, score, reported_by, admin_confirmed, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
+        [resultId, challengeId, JSON.stringify([reportedWinner]), JSON.stringify([reportedLoser]), reportedScore, user.userId, new Date().toISOString()]
+      );
+
+      // Update ELO & ranking points
+      await updateELO(db, reportedWinner, reportedLoser, challenge.mode === 'ranked');
+
+      // Notify both players
+      const winnerNotifId = crypto.randomUUID();
+      const loserNotifId = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      await db.execute(
+        `INSERT INTO notifications (id, user_id, title, message, type, related_id, created_at)
+         VALUES (?, ?, ?, ?, 'match_result', ?, ?)`,
+        [winnerNotifId, reportedWinner, '🏆 Match Result Confirmed! (Victory)', `Your ${challenge.sport} match win (${reportedScore}) has been mutually verified. ELO updated!`, challengeId, now]
+      );
+      await db.execute(
+        `INSERT INTO notifications (id, user_id, title, message, type, related_id, created_at)
+         VALUES (?, ?, ?, ?, 'match_result', ?, ?)`,
+        [loserNotifId, reportedLoser, '📊 Match Result Confirmed', `Your ${challenge.sport} match score (${reportedScore}) has been mutually verified. Keep grinding!`, challengeId, now]
+      );
+
+      return NextResponse.json({ success: true, message: 'Result confirmed! ELO and stats updated.' });
+    }
+
+    // ── ACTION: DISPUTE_RESULT (Anti-Cheat Dispute Queue) ─────────────────────────
+    if (action === 'dispute_result') {
+      const isParticipant = challenge.challenger_id === user.userId || challenge.challenged_id === user.userId;
+      if (!isParticipant) {
+        return NextResponse.json({ success: false, error: 'Only participants can dispute match scores' }, { status: 403 });
+      }
+
+      const disputeMeta = {
+        ...existingMeta,
+        disputed_by_id: user.userId,
+        disputed_by_name: user.name,
+        dispute_reason: reason || 'Opponent submitted inaccurate final score',
+        disputed_at: new Date().toISOString(),
+      };
+
+      await db.execute(
+        `UPDATE challenges SET status = 'disputed', description = ? WHERE id = ?`,
+        [JSON.stringify(disputeMeta), challengeId]
+      );
+
+      // Route to admin notifications
+      const adminRows = await db.query(`SELECT id FROM users WHERE role IN ('admin', 'super_admin') LIMIT 5`);
+      const now = new Date().toISOString();
+      for (const adm of adminRows) {
+        const notifId = crypto.randomUUID();
+        await db.execute(
+          `INSERT INTO notifications (id, user_id, title, message, type, related_id, created_at)
+           VALUES (?, ?, ?, ?, 'match_disputed', ?, ?)`,
+          [
+            notifId,
+            (adm as any).id,
+            '⚠️ Match Score Disputed',
+            `User ${user.name} disputed match ${challengeId} (${challenge.sport}). Reason: ${reason || 'Score conflict'}. Requires admin moderation.`,
+            challengeId,
+            now,
+          ]
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Match result disputed. Moderation team has been alerted for review.',
+        status: 'disputed',
+      });
+    }
+
+    // ── ACTION: COMPLETE (Direct admin or legacy fallback) ────────────────────────
     if (action === 'complete') {
       const isParticipant = challenge.challenger_id === user.userId || challenge.challenged_id === user.userId;
       const isAdmin = user.role === 'admin' || user.role === 'super_admin';
@@ -166,7 +357,6 @@ export async function PATCH(req: NextRequest) {
         [winnerId, challengeId]
       );
 
-      // Log match result
       const resultId = crypto.randomUUID();
       const loserId = winnerId === challenge.challenger_id ? challenge.challenged_id : challenge.challenger_id;
       await db.execute(
@@ -175,24 +365,7 @@ export async function PATCH(req: NextRequest) {
         [resultId, challengeId, JSON.stringify([winnerId]), JSON.stringify([loserId]), score || '', user.userId, isAdmin ? 1 : 0, new Date().toISOString()]
       );
 
-      // Update ELO ratings (simplified Glicko-2)
       await updateELO(db, winnerId, loserId, challenge.mode === 'ranked');
-
-      // Notify both players
-      const winnerNotifId = crypto.randomUUID();
-      const loserNotifId = crypto.randomUUID();
-      const now = new Date().toISOString();
-      await db.execute(
-        `INSERT INTO notifications (id, user_id, title, message, type, related_id, created_at)
-         VALUES (?, ?, ?, ?, 'match_result', ?, ?)`,
-        [winnerNotifId, winnerId, '🏆 You Won!', `Great job! Your ${challenge.sport} challenge result has been recorded.`, challengeId, now]
-      );
-      await db.execute(
-        `INSERT INTO notifications (id, user_id, title, message, type, related_id, created_at)
-         VALUES (?, ?, ?, ?, 'match_result', ?, ?)`,
-        [loserNotifId, loserId, '📊 Match Completed', `Your ${challenge.sport} match result has been recorded. Keep grinding!`, challengeId, now]
-      );
-
       return NextResponse.json({ success: true, message: 'Challenge completed and ELO updated' });
     }
 

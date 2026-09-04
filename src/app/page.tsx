@@ -36,9 +36,9 @@ const FEATURED_CHAMPIONS = [
 ];
 
 const STEPS = [
-  { step: '01', title: 'Create Athlete ID', desc: 'Sign up in seconds. Claim 100 welcome coins to enter the ranking circuit.', icon: Shield },
-  { step: '02', title: 'Join or Issue Duels', desc: 'Match with players at your skill tier. Stake coins on 1v1 duels or open lobbies.', icon: Target },
-  { step: '03', title: 'Climb Pro Tiers', desc: 'Rise from Bronze to Grand Champion with verified Elo rating calculations.', icon: Star },
+  { step: '01', title: 'Create Athlete Profile', desc: 'Sign up in seconds with your campus ID to connect with fellow players.', icon: Shield },
+  { step: '02', title: 'Find or Host Matches', desc: 'Browse active match lobbies or host your own. Filter by sport, ground, and skill level.', icon: Target },
+  { step: '03', title: 'Connect & Play', desc: 'Step onto the court, enjoy the game, and build your campus sports network and fair-play record.', icon: Star },
 ];
 
 interface Stats {
@@ -154,7 +154,7 @@ export default function HomePage() {
               </motion.h1>
 
               <motion.p variants={fadeUp} className="text-base sm:text-lg text-[#a0a0b8] max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-                Connect with athletes in your area, challenge rivals in high-stakes 1v1 duels, organize tournament brackets, and climb global verified Elo tiers.
+                Connect with fellow students, find pickup matches for badminton, cricket, football, and more, organize tournament brackets, and check live court availability on campus.
               </motion.p>
 
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Zap, Trophy, Swords, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Zap, Trophy, Users, Activity } from 'lucide-react';
 
 interface TickerItem {
   icon: React.ReactNode;
@@ -9,20 +9,66 @@ interface TickerItem {
   accent: string;
 }
 
-const TICKER_ITEMS: TickerItem[] = [
-  { icon: <Swords className="w-3.5 h-3.5" />, text: 'Arjun S. defeated Rohan K. in Badminton (+32 RP)', accent: '#CCFF00' },
-  { icon: <Zap className="w-3.5 h-3.5" />, text: '26 pickup matches active right now on campus', accent: '#00F0FF' },
-  { icon: <Trophy className="w-3.5 h-3.5" />, text: 'Campus Cricket Cup Finals — Registration Open', accent: '#FFD700' },
-  { icon: <Swords className="w-3.5 h-3.5" />, text: 'Sneha R. issued a 1v1 Badminton challenge — 250 coins at stake', accent: '#FF2A55' },
-  { icon: <Users className="w-3.5 h-3.5" />, text: 'Football 7v7 at Main Ground — 3 spots left', accent: '#CCFF00' },
-  { icon: <Zap className="w-3.5 h-3.5" />, text: 'Karthik V. reached Diamond tier (1902 RP) 💎', accent: '#00F0FF' },
-  { icon: <Trophy className="w-3.5 h-3.5" />, text: 'Inter-Hostel Basketball League — Starts Saturday', accent: '#FFD700' },
-  { icon: <Swords className="w-3.5 h-3.5" />, text: 'Meera P. won a Table Tennis duel (+18 RP, 200 coins earned)', accent: '#CCFF00' },
+// Fallback items shown only when no real data is available — generic, non-fabricated
+const FALLBACK_ITEMS: TickerItem[] = [
+  { icon: <Activity className="w-3.5 h-3.5" />, text: 'Campus Match Radar is live — post a match to get started', accent: '#CCFF00' },
+  { icon: <Trophy className="w-3.5 h-3.5" />, text: 'Tournaments available — register your team now', accent: '#FFD700' },
+  { icon: <Users className="w-3.5 h-3.5" />, text: 'Find teammates for Cricket, Football, Badminton & more', accent: '#00F0FF' },
+  { icon: <Zap className="w-3.5 h-3.5" />, text: '1v1 Duels — challenge any player on campus to a ranked match', accent: '#CCFF00' },
 ];
 
 export function LiveTicker() {
+  const [items, setItems] = useState<TickerItem[]>(FALLBACK_ITEMS);
   const [isHovered, setIsHovered] = useState(false);
-  const items = [...TICKER_ITEMS, ...TICKER_ITEMS]; // duplicate for seamless loop
+
+  useEffect(() => {
+    // Fetch real stats and build ticker from live data
+    Promise.all([
+      fetch('/api/stats').then(r => r.json()).catch(() => null),
+      fetch('/api/posts?limit=3').then(r => r.json()).catch(() => null),
+    ]).then(([stats, postsData]) => {
+      const live: TickerItem[] = [];
+
+      if (stats?.activeMatches > 0) {
+        live.push({
+          icon: <Zap className="w-3.5 h-3.5" />,
+          text: `${stats.activeMatches} active match ${stats.activeMatches === 1 ? 'lobby' : 'lobbies'} on campus right now`,
+          accent: '#CCFF00',
+        });
+      }
+
+      if (stats?.totalUsers > 0) {
+        live.push({
+          icon: <Users className="w-3.5 h-3.5" />,
+          text: `${stats.totalUsers} athletes have joined CourtMate — find your match`,
+          accent: '#00F0FF',
+        });
+      }
+
+      // Build ticker from recent real posts
+      if (postsData?.posts?.length > 0) {
+        postsData.posts.slice(0, 3).forEach((post: any) => {
+          const spotsLeft = post.maxPlayers - post.currentPlayers;
+          if (spotsLeft > 0) {
+            live.push({
+              icon: <Users className="w-3.5 h-3.5" />,
+              text: `${post.sport} at ${post.ground} — ${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} open`,
+              accent: '#CCFF00',
+            });
+          }
+        });
+      }
+
+      // Use real data if we have meaningful items, otherwise keep fallback
+      if (live.length >= 2) {
+        setItems([...live, ...live]); // duplicate for seamless loop
+      } else {
+        setItems([...FALLBACK_ITEMS, ...FALLBACK_ITEMS]);
+      }
+    });
+  }, []);
+
+  const displayItems = [...items, ...items]; // ensure seamless scrolling
 
   return (
     <div
@@ -57,7 +103,7 @@ export function LiveTicker() {
             willChange: 'transform',
           }}
         >
-          {items.map((item, i) => (
+          {displayItems.map((item, i) => (
             <span key={i} className="flex items-center gap-2 px-6 text-xs">
               <span style={{ color: item.accent }}>{item.icon}</span>
               <span className="text-[#a0a0b8]">{item.text}</span>

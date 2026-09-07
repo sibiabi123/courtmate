@@ -5,97 +5,71 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   Trophy, Users, Zap, ChevronRight, MapPin, Star, Shield, Target,
-  ArrowRight, Flame, Sparkles, Activity, Swords, Play, Crown
+  ArrowRight, Flame, Activity, Swords, Crown
 } from 'lucide-react';
 import { AthleteCard } from '@/components/ui/AthleteCard';
 import { SplitDuelModal } from '@/components/ui/SplitDuelModal';
 import { playClick, playDuel, playSuccess } from '@/lib/sound';
 
 const SPORTS = [
-  { emoji: '🏸', name: 'Badminton', players: '1v1 / 2v2', color: '#CCFF00', tag: 'Fast Reflex' },
-  { emoji: '⚽', name: 'Football', players: '7v7 / 11v11', color: '#00F0FF', tag: 'Team Turf' },
-  { emoji: '🏏', name: 'Cricket', players: '11v11', color: '#FFD700', tag: 'High Intensity' },
-  { emoji: '🏀', name: 'Basketball', players: '5v5 / 3v3', color: '#FF2A55', tag: 'Full Court' },
-  { emoji: '🏓', name: 'Table Tennis', players: '1v1 / 2v2', color: '#CCFF00', tag: 'Rapid Spin' },
-  { emoji: '🎾', name: 'Tennis', players: '1v1 / 2v2', color: '#00F0FF', tag: 'Precision' },
-  { emoji: '🏐', name: 'Volleyball', players: '6v6', color: '#FFD700', tag: 'Power Spike' },
-  { emoji: '♟️', name: 'Chess', players: '1v1', color: '#a0a0b8', tag: 'Grandmaster' },
+  { emoji: '🏸', name: 'Badminton', players: '1v1 / 2v2' },
+  { emoji: '⚽', name: 'Football',  players: '7v7 / 11v11' },
+  { emoji: '🏏', name: 'Cricket',   players: '11v11' },
+  { emoji: '🏀', name: 'Basketball',players: '5v5 / 3v3' },
+  { emoji: '🏓', name: 'Table Tennis',players: '1v1 / 2v2' },
+  { emoji: '🎾', name: 'Tennis',    players: '1v1 / 2v2' },
+  { emoji: '🏐', name: 'Volleyball',players: '6v6' },
+  { emoji: '♟️', name: 'Chess',     players: '1v1' },
 ];
 
 const VENUE_RADAR = [
-  { name: 'Main Sports Arena', sport: 'Football / Cricket', status: 'Active • 18/22 Players', state: 'live', color: '#CCFF00' },
-  { name: 'Indoor Badminton Complex', sport: 'Badminton', status: '3 Courts Open', state: 'open', color: '#00F0FF' },
-  { name: 'Basketball Center Court', sport: 'Basketball 5v5', status: 'Ranked Duel in Progress', state: 'live', color: '#FFD700' },
-  { name: 'Center Tennis Court', sport: 'Tennis Singles', status: 'Ready for Challenge', state: 'open', color: '#FF2A55' },
+  { name: 'Main Sports Arena',         sport: 'Football / Cricket', status: '18 / 22 players',          state: 'live' },
+  { name: 'Indoor Badminton Complex',  sport: 'Badminton',           status: '3 courts open',            state: 'open' },
+  { name: 'Basketball Center Court',   sport: 'Basketball 5v5',      status: 'Ranked match in progress', state: 'live' },
+  { name: 'Center Tennis Court',       sport: 'Tennis Singles',      status: 'Ready for challenge',      state: 'open' },
 ];
 
 const FEATURED_CHAMPIONS = [
-  { id: 1, name: 'Arjun Sharma', sport: 'Badminton', rating: 2140, tier: 'Champion', winRate: 78, streak: 7, wins: 42, district: 'North Campus' },
-  { id: 2, name: 'Priya Sundaram', sport: 'Badminton', rating: 1980, tier: 'Diamond', winRate: 74, streak: 5, wins: 36, district: 'South Arena' },
-  { id: 3, name: 'Vikram Raghavan', sport: 'Football', rating: 1890, tier: 'Diamond', winRate: 69, streak: 4, wins: 29, district: 'East Grounds' },
+  { id: 1, name: 'Arjun Sharma',    sport: 'Badminton', rating: 2140, tier: 'Champion', winRate: 78, streak: 7, wins: 42, district: 'North Campus' },
+  { id: 2, name: 'Priya Sundaram',  sport: 'Badminton', rating: 1980, tier: 'Diamond',  winRate: 74, streak: 5, wins: 36, district: 'South Arena' },
+  { id: 3, name: 'Vikram Raghavan', sport: 'Football',  rating: 1890, tier: 'Diamond',  winRate: 69, streak: 4, wins: 29, district: 'East Grounds' },
 ];
 
 const STEPS = [
-  { step: '01', title: 'Create Athlete Profile', desc: 'Sign up in seconds with your campus ID to connect with fellow players.', icon: Shield },
-  { step: '02', title: 'Find or Host Matches', desc: 'Browse active match lobbies or host your own. Filter by sport, ground, and skill level.', icon: Target },
-  { step: '03', title: 'Connect & Play', desc: 'Step onto the court, enjoy the game, and build your campus sports network and fair-play record.', icon: Star },
+  { step: '01', title: 'Create Athlete Profile', desc: 'Sign up in seconds with your campus ID.', icon: Shield },
+  { step: '02', title: 'Find or Host Matches',   desc: 'Browse active lobbies or post your own pickup game.', icon: Target },
+  { step: '03', title: 'Play & Build Reputation',desc: 'Track wins, build your ranking, earn community trust.', icon: Star },
 ];
 
-interface Stats {
-  totalUsers: number;
-  activeMatches: number;
-  totalTournaments: number;
-}
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-};
-
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
-};
+const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.45 } } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.09 } } };
 
 export default function HomePage() {
-  const [stats, setStats] = useState<Stats>({ totalUsers: 342, activeMatches: 14, totalTournaments: 6 });
-  const [selectedSport, setSelectedSport] = useState('Badminton');
-  const [selectedMode, setSelectedMode] = useState<'ranked' | 'casual'>('ranked');
-  const [isSearching, setIsSearching] = useState(false);
+  const [stats, setStats] = useState({ totalUsers: 342, activeMatches: 14, totalTournaments: 6 });
   const [champions, setChampions] = useState<any[]>(FEATURED_CHAMPIONS);
-
-  // Split Duel Modal State
   const [duelModalOpen, setDuelModalOpen] = useState(false);
   const [selectedOpponent, setSelectedOpponent] = useState<any>(FEATURED_CHAMPIONS[0]);
+  const [openLobbies, setOpenLobbies] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/stats')
       .then(r => r.json())
-      .then(d => {
-        if (d && (d.totalUsers > 0 || d.activeMatches > 0)) {
-          setStats(d);
-        }
-      })
+      .then(d => { if (d && d.totalUsers > 0) setStats(d); })
+      .catch(() => {});
+
+    fetch('/api/posts?limit=3&status=open')
+      .then(r => r.json())
+      .then(d => { if (d.success && Array.isArray(d.posts)) setOpenLobbies(d.posts.slice(0, 3)); })
       .catch(() => {});
 
     fetch('/api/leaderboard')
       .then(r => r.json())
-      .then(data => {
-        if (data.success && Array.isArray(data.users) && data.users.length >= 3) {
-          const mapped = data.users.slice(0, 3).map((u: any, idx: number) => {
+      .then(d => {
+        if (d.success && Array.isArray(d.users) && d.users.length >= 3) {
+          const mapped = d.users.slice(0, 3).map((u: any, idx: number) => {
             const rating = u.glickoRating?.rating || u.glicko_rating || 1500;
             const tier = rating >= 2000 ? 'Champion' : rating >= 1800 ? 'Diamond' : rating >= 1600 ? 'Platinum' : 'Gold';
-            return {
-              id: u.id || idx + 1,
-              name: u.name,
-              sport: ['Badminton', 'Football', 'Cricket'][idx % 3],
-              rating,
-              tier,
-              winRate: 70 + (idx * 4),
-              streak: 7 - idx,
-              wins: 30 + (idx * 5),
-              district: u.hostel || 'Main Campus',
-            };
+            return { id: u.id || idx + 1, name: u.name, sport: ['Badminton','Football','Cricket'][idx % 3], rating, tier, winRate: 70 + idx * 4, streak: 7 - idx, wins: 30 + idx * 5, district: u.hostel || 'Main Campus' };
           });
           setChampions(mapped);
         }
@@ -103,336 +77,261 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
-  const handleQuickMatch = () => {
-    playDuel();
-    setIsSearching(true);
-    setTimeout(() => {
-      window.location.href = `/feed?sport=${encodeURIComponent(selectedSport)}`;
-    }, 600);
-  };
-
-  const openDuel = (opponentAthlete: any) => {
-    setSelectedOpponent(opponentAthlete);
-    setDuelModalOpen(true);
-  };
-
-  const challengerAthlete = {
-    id: 999,
-    name: 'You (Athlete)',
-    rating: 1540,
-    tier: 'Platinum',
-    sport: selectedSport,
-    winRate: 64,
-    streak: 3,
-  };
+  const challengerAthlete = { id: 999, name: 'You (Athlete)', rating: 1540, tier: 'Platinum', sport: 'Badminton', winRate: 64, streak: 3 };
 
   return (
-    <div className="min-h-screen bg-[#040507] text-white">
-      {/* ── HERO SECTION ── */}
-      <section className="relative pt-24 pb-20 px-4 overflow-hidden">
-        {/* Acid Volt and Cyan ambient glow backdrops */}
-        <div className="absolute top-10 left-1/4 w-[600px] h-[600px] rounded-full opacity-15 blur-[150px] pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #CCFF00, transparent)' }} />
-        <div className="absolute top-32 right-1/4 w-[500px] h-[500px] rounded-full opacity-15 blur-[140px] pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #00F0FF, transparent)' }} />
+    <div className="min-h-screen" style={{ background: 'var(--void)', color: 'var(--text-primary)' }}>
+
+      {/* ── HERO ── */}
+      <section className="relative pt-28 pb-24 px-4 overflow-hidden">
+        {/* Single minimal ambient glow — subtle, centered */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(200,255,0,0.07) 0%, transparent 70%)', filter: 'blur(40px)' }} />
 
         <div className="relative max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
-            {/* Left Hero Content */}
-            <motion.div initial="hidden" animate="show" variants={stagger} className="lg:col-span-7 text-center lg:text-left">
-              <motion.div variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-[#CCFF00]/30 bg-[#CCFF00]/10 px-4 py-1.5 text-xs font-bold text-[#CCFF00] mb-6 backdrop-blur-md shadow-lg shadow-[#CCFF00]/10 stat-mono">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>KINETIC SPORTS MATCHMAKING & LEAGUES</span>
-              </motion.div>
+          <motion.div initial="hidden" animate="show" variants={stagger} className="text-center max-w-3xl mx-auto">
 
-              <motion.h1 variants={fadeUp} className="text-5xl sm:text-6xl md:text-7xl font-black font-[family-name:var(--font-outfit)] leading-[1.05] mb-6 tracking-tight">
-                <span className="text-white">DOMINATE</span><br />
-                <span style={{ background: 'linear-gradient(90deg, #CCFF00, #00F0FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                  EVERY COURT.
-                </span>
-              </motion.h1>
-
-              <motion.p variants={fadeUp} className="text-base sm:text-lg text-[#a0a0b8] max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-                Connect with fellow students, find pickup matches for badminton, cricket, football, and more, organize tournament brackets, and check live court availability on campus.
-              </motion.p>
-
-              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link
-                  href="/feed"
-                  onClick={() => playClick()}
-                  className="flex items-center justify-center gap-2 rounded-xl px-8 py-4 font-black text-[#040507] text-base transition-all hover:scale-105 shadow-xl btn-volt"
-                >
-                  <Zap className="w-5 h-5" /> Explore Match Radar
-                </Link>
-                <Link
-                  href="/challenges"
-                  onClick={() => playClick()}
-                  className="flex items-center justify-center gap-2 rounded-xl px-8 py-4 font-bold text-white text-base border border-white/15 bg-white/5 hover:bg-white/10 hover:border-[#CCFF00]/40 transition-all backdrop-blur-sm tactile-press"
-                >
-                  <Swords className="w-5 h-5 text-[#CCFF00]" /> Duel Arena
-                </Link>
-              </motion.div>
-
-              {/* Quick stats pills */}
-              <motion.div variants={fadeUp} className="flex items-center justify-center lg:justify-start gap-6 mt-10 pt-6 border-t border-white/10">
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[#CCFF00] animate-pulse" />
-                  <span className="text-sm font-bold text-white stat-mono">{stats.totalUsers}+ ATHLETES</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-[#FFD700]" />
-                  <span className="text-sm font-bold text-white stat-mono">6 PRO TIERS</span>
-                </div>
-              </motion.div>
+            {/* Eyebrow label */}
+            <motion.div variants={fadeUp}
+              className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 rounded-full text-[11px] font-semibold label-cap"
+              style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--volt)' }} />
+              Campus Sports Matchmaking & Tournaments
             </motion.div>
 
-            {/* Right 1-Click Tactical Matchmaker Card */}
+            {/* Headline */}
+            <motion.h1 variants={fadeUp}
+              className="text-5xl sm:text-6xl md:text-7xl font-black font-[family-name:var(--font-display)] leading-[1.05] tracking-tight mb-5">
+              Find Your<br />
+              <span style={{ color: 'var(--volt)' }}>Court.</span>
+            </motion.h1>
+
+            {/* Sub */}
+            <motion.p variants={fadeUp}
+              className="text-base sm:text-lg max-w-xl mx-auto mb-8 leading-relaxed"
+              style={{ color: 'var(--text-secondary)' }}>
+              Connect with campus athletes, join pickup matches, and compete in tournaments — badminton, cricket, football, and more.
+            </motion.p>
+
+            {/* CTAs */}
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+              <Link href="/feed" onClick={() => playClick()}
+                className="btn-primary px-7 py-3.5 text-sm font-bold">
+                <Zap className="w-4 h-4" /> Browse Open Matches
+              </Link>
+              <Link href="/leaderboard" onClick={() => playClick()}
+                className="btn-secondary px-7 py-3.5 text-sm">
+                View Rankings <ArrowRight className="w-4 h-4" />
+              </Link>
+            </motion.div>
+          </motion.div>
+
+          {/* Live Match Preview Strip */}
+          {openLobbies.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="lg:col-span-5"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35, duration: 0.5 }}
+              className="mt-14 max-w-2xl mx-auto"
             >
-              <div className="rounded-3xl border border-white/15 bg-[#0A0C10]/95 p-6 shadow-2xl backdrop-blur-xl relative overflow-hidden"
-                style={{ boxShadow: '0 25px 60px rgba(0,0,0,0.8), 0 0 40px rgba(204,255,0,0.08)' }}>
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#CCFF00]/20 border border-[#CCFF00]/40 text-[#CCFF00]">
-                      <Zap className="h-4 w-4" />
+              <div className="flex items-center justify-between mb-3">
+                <span className="label-cap flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--volt)' }} />
+                  Live Open Lobbies
+                </span>
+                <Link href="/feed" onClick={() => playClick()}
+                  className="text-[11px] font-medium flex items-center gap-1 hover:underline"
+                  style={{ color: 'var(--text-muted)' }}>
+                  View all <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {openLobbies.map((post: any) => (
+                  <div key={post.id}
+                    className="flex items-center justify-between px-4 py-3 rounded-[var(--r-lg)] transition-colors"
+                    style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{post.game?.icon || '🏃'}</span>
+                      <div>
+                        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                          {post.game?.name || post.title || 'Open Match'}
+                        </p>
+                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                          {post.location || 'Campus ground'} · {post.slotsFilled || 0}/{post.slotsTotal || 0} players
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-[family-name:var(--font-outfit)] font-black text-white text-base">Tactical Matchfinder</h3>
-                      <p className="text-[11px] text-[#6b6b80]">Instant Court & Opponent Matching</p>
-                    </div>
+                    <Link href="/feed" onClick={() => playClick()}
+                      className="btn-primary px-3 py-1.5 text-[11px] font-bold">
+                      Join
+                    </Link>
                   </div>
-                  <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 stat-mono">
-                    ONLINE
-                  </span>
-                </div>
-
-                {/* Sport Selector Chips */}
-                <div className="mb-4">
-                  <label className="block text-[11px] font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">Select Sport</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {SPORTS.map(s => (
-                      <button
-                        key={s.name}
-                        onClick={() => {
-                          playClick();
-                          setSelectedSport(s.name);
-                        }}
-                        className={`flex flex-col items-center justify-center py-2.5 rounded-xl text-xs font-bold transition-all tactile-press ${
-                          selectedSport === s.name
-                            ? 'bg-[#CCFF00] text-[#040507] shadow-lg shadow-[#CCFF00]/25 border border-[#CCFF00]'
-                            : 'bg-white/5 text-[#a0a0b8] hover:text-white hover:bg-white/10 border border-white/5'
-                        }`}
-                      >
-                        <span className="text-base mb-0.5">{s.emoji}</span>
-                        <span className="truncate max-w-[55px] text-[10px]">{s.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Mode Selector */}
-                <div className="mb-5">
-                  <label className="block text-[11px] font-bold text-[#a0a0b8] uppercase tracking-wider mb-2">Match Mode</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => {
-                        playClick();
-                        setSelectedMode('ranked');
-                      }}
-                      className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all tactile-press ${
-                        selectedMode === 'ranked'
-                          ? 'bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/40'
-                          : 'bg-white/5 text-[#6b6b80] border border-white/5'
-                      }`}
-                    >
-                      <Trophy className="h-3.5 w-3.5" /> Ranked (Stake RP)
-                    </button>
-                    <button
-                      onClick={() => {
-                        playClick();
-                        setSelectedMode('casual');
-                      }}
-                      className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-all tactile-press ${
-                        selectedMode === 'casual'
-                          ? 'bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/40'
-                          : 'bg-white/5 text-[#6b6b80] border border-white/5'
-                      }`}
-                    >
-                      <Play className="h-3.5 w-3.5" /> Casual Pickup
-                    </button>
-                  </div>
-                </div>
-
-                {/* Submit Action Button */}
-                <button
-                  onClick={handleQuickMatch}
-                  disabled={isSearching}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black text-[#040507] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl disabled:opacity-50 btn-volt"
-                >
-                  {isSearching ? (
-                    <>
-                      <span className="h-4 w-4 rounded-full border-2 border-[#040507] border-t-transparent animate-spin" />
-                      Scanning Active Courts...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="h-4 w-4" /> Find {selectedSport} Match Now
-                    </>
-                  )}
-                </button>
+                ))}
               </div>
             </motion.div>
-
-          </div>
+          )}
         </div>
       </section>
 
-      {/* ── STATS TELEMETRY BAR ── */}
-      <section className="py-10 border-y border-white/5 bg-[#0A0C10]">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="grid grid-cols-3 gap-6">
+      {/* ── STATS BAR ── */}
+      <section className="py-12" style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="grid grid-cols-3 gap-0 divide-x" style={{ '--tw-divide-opacity': 1 } as any}>
             {[
-              { label: 'Registered Athletes', value: stats.totalUsers || 342, icon: Users, color: '#CCFF00' },
-              { label: 'Active Match Lobbies', value: stats.activeMatches || 14, icon: Zap, color: '#00F0FF' },
-              { label: 'Championship Cups', value: stats.totalTournaments || 8, icon: Trophy, color: '#FFD700' },
+              { label: 'Athletes',      value: stats.totalUsers,       suffix: '+', color: 'var(--volt)' },
+              { label: 'Active Matches',value: stats.activeMatches,    suffix: '',  color: 'var(--signal)' },
+              { label: 'Tournaments',   value: stats.totalTournaments, suffix: '',  color: 'var(--gold)' },
             ].map((s, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="text-center">
-                <s.icon className="w-6 h-6 mx-auto mb-2" style={{ color: s.color }} />
-                <div className="text-3xl sm:text-4xl font-black font-[family-name:var(--font-outfit)] stat-mono" style={{ color: s.color }}>
-                  {s.value}
-                </div>
-                <div className="text-xs sm:text-sm text-[#6b6b80] mt-1 font-bold uppercase tracking-wider">{s.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── 3D HOLOGRAPHIC CHAMPIONS SPOTLIGHT ── */}
-      <section className="py-20 px-4 relative">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-xl mx-auto mb-12">
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#FFD700] uppercase tracking-wider mb-2 stat-mono">
-              <Crown className="h-4 w-4" /> HALL OF FAME
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black font-[family-name:var(--font-outfit)] text-white">Daily Pro Champions</h2>
-            <p className="text-sm text-[#a0a0b8] mt-2">Tilt cursor over athlete cards to inspect telemetry ratings & skill graphs.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {champions.map((champ, i) => (
-              <AthleteCard
-                key={champ.id || i}
-                athlete={champ}
-                rank={i + 1}
-                onChallenge={() => openDuel(champ)}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── LIVE ARENA RADAR & COURT STATUS ── */}
-      <section className="py-16 px-4 bg-[#0A0C10]/60 border-t border-white/5">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#CCFF00] uppercase tracking-wider mb-2 stat-mono">
-                <Activity className="h-3.5 w-3.5" /> LIVE TELEMETRY
-              </div>
-              <h2 className="text-3xl font-black font-[family-name:var(--font-outfit)] text-white">Court Radar & Venue Status</h2>
-            </div>
-            <Link
-              href="/feed"
-              onClick={() => playClick()}
-              className="flex items-center gap-1 text-sm font-bold text-[#CCFF00] hover:underline"
-            >
-              View All 10+ Venues <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {VENUE_RADAR.map((v, i) => (
-              <motion.div
-                key={v.name}
+              <motion.div key={i}
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className="p-5 rounded-2xl border border-white/10 bg-[#12151C] hover:border-[#CCFF00]/40 transition-all group kinetic-card"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/5 text-[#a0a0b8]">
-                    {v.sport}
-                  </span>
-                  <span className={`h-2.5 w-2.5 rounded-full ${v.state === 'live' ? 'bg-[#CCFF00] animate-ping' : 'bg-[#00F0FF]'}`} />
+                transition={{ delay: i * 0.1 }}
+                className="text-center px-6"
+                style={{ borderColor: 'var(--border)' }}>
+                <div className="text-3xl sm:text-4xl font-black stat-mono" style={{ color: s.color }}>
+                  {s.value}{s.suffix}
                 </div>
-                <h3 className="font-[family-name:var(--font-outfit)] font-black text-white text-base mb-1 group-hover:text-[#CCFF00] transition-colors">{v.name}</h3>
-                <p className="text-xs text-[#a0a0b8] flex items-center gap-1.5">
-                  <MapPin className="h-3 w-3 text-[#CCFF00]" /> {v.status}
-                </p>
+                <div className="text-xs font-medium mt-1 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  {s.label}
+                </div>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── SPORTS DISCIPLINES GRID ── */}
-      <section className="py-16 px-4">
+      {/* ── CAMPUS LEADERS ── */}
+      <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-10">
-            <h2 className="text-3xl font-black font-[family-name:var(--font-outfit)] text-white">Supported Athletic Disciplines</h2>
-            <p className="text-[#6b6b80] mt-2">Find pickup matches, host cups, and log results across sports.</p>
-          </motion.div>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {SPORTS.map((sport, i) => (
-              <motion.div
-                key={sport.name}
-                initial={{ opacity: 0, y: 20 }}
+          <div className="text-center max-w-xl mx-auto mb-12">
+            <div className="label-cap flex items-center justify-center gap-1.5 mb-3">
+              <Crown className="h-3.5 w-3.5" style={{ color: 'var(--gold)' }} />
+              Campus Leaders
+            </div>
+            <h2 className="text-3xl font-black font-[family-name:var(--font-display)]">
+              Top-Ranked Athletes
+            </h2>
+            <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
+              Tilt your cursor over a card to inspect their skill stats.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {champions.map((champ, i) => (
+              <AthleteCard key={champ.id || i} athlete={champ} rank={i + 1} onChallenge={() => { setSelectedOpponent(champ); setDuelModalOpen(true); }} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── VENUE RADAR ── */}
+      <section className="py-16 px-4" style={{ borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+            <div>
+              <div className="label-cap flex items-center gap-1.5 mb-2">
+                <Activity className="h-3.5 w-3.5" style={{ color: 'var(--volt)' }} />
+                Live Telemetry
+              </div>
+              <h2 className="text-2xl font-bold font-[family-name:var(--font-display)]">
+                Court Radar & Venue Status
+              </h2>
+            </div>
+            <Link href="/feed" onClick={() => playClick()}
+              className="flex items-center gap-1 text-sm font-medium hover:underline"
+              style={{ color: 'var(--volt)' }}>
+              View all venues <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {VENUE_RADAR.map((v, i) => (
+              <motion.div key={v.name}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Link
-                  href={`/feed?sport=${encodeURIComponent(sport.name)}`}
-                  onClick={() => playClick()}
-                  className="flex flex-col items-center gap-3 p-5 rounded-2xl border border-white/8 hover:border-[#CCFF00]/30 bg-white/[0.02] hover:bg-[#CCFF00]/5 transition-all hover:scale-105 group tactile-press"
-                >
-                  <span className="text-4xl group-hover:scale-110 transition-transform duration-300">{sport.emoji}</span>
-                  <div className="text-center">
-                    <div className="font-bold text-white text-sm font-[family-name:var(--font-outfit)]">{sport.name}</div>
-                    <div className="text-xs text-[#6b6b80] mt-0.5">{sport.players}</div>
-                    <span className="inline-block mt-2 text-[10px] font-bold text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded-full stat-mono">
-                      {sport.tag}
+                transition={{ delay: i * 0.07 }}
+                className="p-4 rounded-[var(--r-lg)] relative overflow-hidden"
+                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                {/* Sport color accent stripe */}
+                <div className="absolute left-0 top-4 bottom-4 w-0.5 rounded-full"
+                  style={{ background: v.state === 'live' ? 'var(--volt)' : 'var(--signal)', opacity: v.state === 'live' ? 1 : 0.6 }} />
+                <div className="pl-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                      style={{ background: 'var(--surface-3)', color: 'var(--text-muted)' }}>
+                      {v.sport}
                     </span>
+                    <span className={`h-2 w-2 rounded-full ${v.state === 'live' ? 'animate-ping' : ''}`}
+                      style={{ background: v.state === 'live' ? 'var(--volt)' : 'var(--signal)' }} />
                   </div>
-                </Link>
+                  <h3 className="font-semibold text-sm mb-1 leading-tight" style={{ color: 'var(--text-primary)' }}>
+                    {v.name}
+                  </h3>
+                  <p className="text-[11px] flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                    <MapPin className="h-3 w-3 shrink-0" /> {v.status}
+                  </p>
+                </div>
               </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── SPORTS GRID ── */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-bold font-[family-name:var(--font-display)]">
+              Supported Sports
+            </h2>
+            <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
+              Find pickup matches and organize tournaments across disciplines.
+            </p>
+          </div>
+          {/* Horizontal scroll on mobile, grid on desktop */}
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none sm:grid sm:grid-cols-4 sm:overflow-visible sm:pb-0">
+            {SPORTS.map((sport, i) => (
+              <Link key={sport.name}
+                href={`/feed?sport=${encodeURIComponent(sport.name)}`}
+                onClick={() => playClick()}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-[var(--r-lg)] shrink-0 w-28 sm:w-auto transition-all group hover:border-[--border-hi]"
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <span className="text-3xl">{sport.emoji}</span>
+                <div className="text-center">
+                  <div className="font-semibold text-sm">{sport.name}</div>
+                  <div className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{sport.players}</div>
+                </div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <section className="py-16 px-4 border-t border-white/5 bg-[#0A0C10]">
+      <section className="py-16 px-4" style={{ borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
         <div className="max-w-4xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
-            <h2 className="text-3xl font-black font-[family-name:var(--font-outfit)] text-white">How CourtMate Works</h2>
-            <p className="text-[#6b6b80] mt-2">Get ready to dominate the court in three simple steps</p>
-          </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-bold font-[family-name:var(--font-display)]">How It Works</h2>
+            <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>Get on the court in three steps.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
             {STEPS.map((step, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} className="relative p-6 rounded-2xl border border-white/8 text-center bg-white/[0.02]">
-                <div className="text-xs font-black text-[#CCFF00] mb-3 tracking-widest uppercase stat-mono">{step.step}</div>
-                <step.icon className="w-8 h-8 text-[#00F0FF] mx-auto mb-3" />
-                <h3 className="font-bold text-white text-lg mb-2 font-[family-name:var(--font-outfit)]">{step.title}</h3>
-                <p className="text-sm text-[#6b6b80] leading-relaxed">{step.desc}</p>
+              <motion.div key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.12 }}
+                className="relative p-6 rounded-[var(--r-lg)]"
+                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                {/* Large background step number */}
+                <div className="absolute top-4 right-5 text-7xl font-black leading-none select-none pointer-events-none"
+                  style={{ color: 'var(--border)', fontFamily: 'var(--font-display)', opacity: 0.6 }}>
+                  {step.step}
+                </div>
+                <step.icon className="w-6 h-6 mb-4" style={{ color: 'var(--volt)' }} />
+                <h3 className="font-bold text-base mb-2">{step.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{step.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -441,23 +340,29 @@ export default function HomePage() {
 
       {/* ── CTA BANNER ── */}
       <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="p-10 rounded-3xl border border-white/10 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(204,255,0,0.1), rgba(0,240,255,0.08))' }}>
-            <h2 className="text-4xl sm:text-5xl font-black font-[family-name:var(--font-outfit)] text-white mb-4">Step Onto the Court Today.</h2>
-            <p className="text-[#a0a0b8] mb-8 text-lg max-w-xl mx-auto">Create your athlete profile, challenge players, and build your legacy on the leaderboards.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/register"
-                onClick={() => playClick()}
-                className="flex items-center justify-center gap-2 rounded-xl px-8 py-4 font-black text-[#040507] text-base transition-all hover:scale-105 shadow-xl btn-volt"
-              >
-                Create Athlete Account <ArrowRight className="w-5 h-5" />
+        <div className="max-w-3xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="p-10 rounded-[var(--r-2xl)] text-center relative overflow-hidden"
+            style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+            {/* Subtle volt tint top */}
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, var(--volt), transparent)', opacity: 0.5 }} />
+
+            <h2 className="text-3xl sm:text-4xl font-black font-[family-name:var(--font-display)] mb-4">
+              Step Onto the Court.
+            </h2>
+            <p className="mb-8 max-w-md mx-auto" style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
+              Create your athlete profile, challenge players, and build your legacy on the leaderboard.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/register" onClick={() => playClick()}
+                className="btn-primary px-7 py-3.5 text-sm font-bold">
+                Create Free Account <ArrowRight className="w-4 h-4" />
               </Link>
-              <Link
-                href="/login"
-                onClick={() => playClick()}
-                className="flex items-center justify-center gap-2 rounded-xl px-8 py-4 font-bold text-[#a0a0b8] text-base border border-white/15 hover:text-white hover:border-[#CCFF00]/40 transition-all backdrop-blur-sm tactile-press"
-              >
+              <Link href="/login" onClick={() => playClick()}
+                className="btn-ghost px-7 py-3.5 text-sm">
                 Sign In
               </Link>
             </div>
@@ -465,16 +370,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Split Duel Modal */}
+      {/* Duel modal */}
       {selectedOpponent && (
         <SplitDuelModal
           isOpen={duelModalOpen}
           challenger={challengerAthlete}
           opponent={selectedOpponent}
           onClose={() => setDuelModalOpen(false)}
-          onConfirm={(stake, sport, venue) => {
-            playSuccess();
-          }}
+          onConfirm={() => { playSuccess(); }}
         />
       )}
     </div>

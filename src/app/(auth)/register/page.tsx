@@ -1,284 +1,245 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, UserPlus, AlertCircle, CheckCircle2, MapPin, GraduationCap, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, GraduationCap, MapPin } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { getActiveCampusConfig } from '@/lib/campus-config';
 
-function getPasswordStrength(pwd: string): { label: string; color: string; pct: number } {
-  if (pwd.length === 0) return { label: '', color: '#333', pct: 0 };
+function getPwdStrength(pwd: string): { label: string; color: string; pct: number } {
+  if (!pwd) return { label: '', color: 'var(--border)', pct: 0 };
   let score = 0;
   if (pwd.length >= 8) score++;
   if (/[A-Z]/.test(pwd)) score++;
   if (/[0-9]/.test(pwd)) score++;
   if (/[^A-Za-z0-9]/.test(pwd)) score++;
-  if (score <= 1) return { label: 'Weak', color: '#FF2A55', pct: 25 };
-  if (score === 2) return { label: 'Fair', color: '#f59e0b', pct: 50 };
-  if (score === 3) return { label: 'Good', color: '#00F0FF', pct: 75 };
-  return { label: 'Strong', color: '#CCFF00', pct: 100 };
+  if (score <= 1) return { label: 'Weak',   color: 'var(--danger)',  pct: 25 };
+  if (score === 2) return { label: 'Fair',   color: 'var(--warning)', pct: 50 };
+  if (score === 3) return { label: 'Good',   color: 'var(--signal)',  pct: 75 };
+  return               { label: 'Strong', color: 'var(--volt)',    pct: 100 };
 }
 
 export default function RegisterPage() {
   const router = useRouter();
   const { setCurrentUser } = useUIStore();
   const campusConfig = getActiveCampusConfig();
-  
+
   const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirm: '',
+    name: '', email: '', password: '', confirm: '',
     hostel: campusConfig.hostels[0]?.name || 'MH-A Block',
   });
-
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [agreed, setAgreed] = useState(false);
+  const [error, setError]     = useState('');
+  const [agreed, setAgreed]   = useState(false);
 
-  const pwdStrength = getPasswordStrength(form.password);
-  const emailValid = /^[^@]+@[^@]+\.[^@]+$/.test(form.email);
-  const emailDomain = form.email.split('@')[1]?.toLowerCase();
-  const isVerifiedAcademic = emailDomain?.includes('vit') || emailDomain?.endsWith('.ac.in') || emailDomain?.endsWith('.edu');
+  const pwdStrength    = getPwdStrength(form.password);
+  const emailDomain    = form.email.split('@')[1]?.toLowerCase();
+  const isAcademic     = emailDomain?.includes('vit') || emailDomain?.endsWith('.ac.in') || emailDomain?.endsWith('.edu');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!emailValid) { setError('Please enter a valid email address.'); return; }
     if (form.password !== form.confirm) { setError('Passwords do not match.'); return; }
-    if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
-    if (!agreed) { setError('Please accept the Fair Play guidelines.'); return; }
+    if (form.password.length < 8)       { setError('Password must be at least 8 characters.'); return; }
+    if (!agreed)                         { setError('Please accept the Fair Play guidelines.'); return; }
     setLoading(true);
-
     try {
-      const res = await fetch('/api/auth/register', {
+      const res  = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          collegeId: 'vit-vellore',
-          collegeName: campusConfig.collegeName,
-          hostel: form.hostel,
+          name: form.name, email: form.email, password: form.password,
+          collegeId: 'vit-vellore', collegeName: campusConfig.collegeName, hostel: form.hostel,
         }),
       });
-
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        setError(data.error || 'Registration failed. Try again.');
-        return;
-      }
+      if (!res.ok || !data.success) { setError(data.error || 'Registration failed.'); return; }
       setCurrentUser(data.user);
       router.push('/feed');
-    } catch (err) {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError('Network error. Please try again.'); }
+    finally   { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-[#040507] flex">
-      {/* Left: Collegiate Hero Showcase */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col justify-between p-12 bg-[#08090C] border-r border-white/10">
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#CCFF00_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
-        
+    <div className="min-h-screen flex" style={{ background: 'var(--void)' }}>
+
+      {/* Left branded panel */}
+      <div className="hidden lg:flex lg:w-5/12 flex-col justify-between p-12 relative overflow-hidden"
+        style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at 40% 40%, rgba(200,255,0,0.05) 0%, transparent 65%)' }} />
+
         <div className="relative z-10">
-          <Link href="/" className="inline-flex items-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-[#CCFF00] flex items-center justify-center text-[#040507] font-black text-sm">
-              CM
+          <Link href="/" className="inline-flex items-center gap-2 mb-10">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--volt)' }}>
+              <span className="font-black text-[11px]" style={{ color: 'var(--ink)', fontFamily: 'var(--font-display)' }}>CM</span>
             </div>
-            <span className="text-2xl font-black font-outfit text-white">Court<span className="text-[#CCFF00]">Mate</span></span>
+            <span className="text-lg font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+              Court<span style={{ color: 'var(--volt)' }}>Mate</span>
+            </span>
           </Link>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/30 mb-4">
-            <span>{campusConfig.emblem}</span> {campusConfig.shortName} Athletic Network
-          </div>
-          <h2 className="text-4xl font-black font-outfit text-white leading-tight mb-4">
-            Host Games, Stake 1v1 Duels & Dominate the <span className="text-[#CCFF00]">Hostel Cup</span>.
+
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold mb-5"
+            style={{ background: 'var(--volt-dim)', color: 'var(--volt)', border: '1px solid var(--volt-border)' }}>
+            {campusConfig.emblem} {campusConfig.shortName}
+          </span>
+
+          <h2 className="text-3xl font-black leading-tight mb-4" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+            Host matches.<br />Build your rank.<br />Own the <span style={{ color: 'var(--volt)' }}>court.</span>
           </h2>
-          <p className="text-[#a0a0b8] text-sm leading-relaxed max-w-md">
-            Join thousands of campus athletes. Coordinate pickup matches across campus sports arenas, claim your 3D sports card, and compete for hostel supremacy.
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Join campus athletes. Coordinate pickup games, compete in hostel tournaments, and climb the leaderboard.
           </p>
         </div>
 
-        {/* Live campus chips */}
-        <div className="relative z-10 pt-8 border-t border-white/10">
-          <p className="text-xs font-black uppercase tracking-wider text-[#6b6b80] mb-3">Campus Facilities</p>
+        <div className="relative z-10" style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+          <p className="label-cap mb-3">Campus Venues</p>
           <div className="flex flex-wrap gap-2">
             {campusConfig.venues.slice(0, 5).map(v => (
-              <span key={v.id} className="px-3 py-1 rounded-lg text-xs font-bold bg-white/5 border border-white/10 text-white flex items-center gap-1.5">
-                <MapPin className="w-3 h-3 text-[#CCFF00]" /> {v.name.split('(')[0]}
+              <span key={v.id} className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium"
+                style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                <MapPin className="w-3 h-3 shrink-0" style={{ color: 'var(--volt)' }} />
+                {v.name.split('(')[0].trim()}
               </span>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Right: Clean Registration Form */}
+      {/* Right form panel */}
       <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md py-8">
-          
-          <div className="lg:hidden text-center mb-6">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-[#CCFF00] text-[#040507] font-black flex items-center justify-center text-xs">
-                CM
-              </div>
-              <span className="text-2xl font-black font-outfit text-white">Court<span className="text-[#CCFF00]">Mate</span></span>
-            </Link>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+          className="w-full max-w-md py-8">
+
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'var(--volt)' }}>
+              <span className="font-black text-[11px]" style={{ color: 'var(--ink)', fontFamily: 'var(--font-display)' }}>CM</span>
+            </div>
+            <span className="text-xl font-black" style={{ fontFamily: 'var(--font-display)' }}>
+              <span style={{ color: 'var(--text-primary)' }}>Court</span><span style={{ color: 'var(--volt)' }}>Mate</span>
+            </span>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-[#0A0C10] p-8 shadow-2xl">
-            <div className="mb-6">
-              <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-[#CCFF00] bg-[#CCFF00]/10 px-2.5 py-0.5 rounded-full border border-[#CCFF00]/20 mb-2">
-                <span>{campusConfig.emblem}</span> {campusConfig.shortName}
-              </div>
-              <h1 className="text-2xl font-black font-outfit text-white">Create Athlete Profile</h1>
-              <p className="text-xs text-[#a0a0b8] mt-1">Get your 3D card and 100 welcome coins 🪙</p>
+          <h1 className="text-2xl font-black mb-1" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+            Create your profile
+          </h1>
+          <p className="text-sm mb-7" style={{ color: 'var(--text-muted)' }}>Free. No card required.</p>
+
+          {error && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2.5 p-3.5 rounded-[var(--r-lg)] text-sm mb-5"
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--danger)' }}>
+              <AlertCircle className="w-4 h-4 shrink-0" />{error}
+            </motion.div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name */}
+            <div>
+              <label className="label-cap mb-2 block">Full Name</label>
+              <input type="text" required placeholder="e.g. Arjun Sharma"
+                value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                className="input-base" />
             </div>
 
-            {error && (
-              <div className="mb-5 p-3.5 rounded-xl bg-[#FF2A55]/10 border border-[#FF2A55]/30 text-[#FF2A55] text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
+            {/* Email */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="label-cap">Email</label>
+                {isAcademic && (
+                  <span className="flex items-center gap-1 text-[10px] font-semibold"
+                    style={{ color: 'var(--success)' }}>
+                    <GraduationCap className="w-3 h-3" /> Verified Student
+                  </span>
+                )}
+              </div>
+              <input type="email" required placeholder="name@vitstudent.ac.in"
+                value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                className="input-base" />
+            </div>
+
+            {/* Hostel */}
+            <div>
+              <label className="label-cap mb-2 block">Hostel / Residence</label>
+              <select value={form.hostel} onChange={e => setForm(p => ({ ...p, hostel: e.target.value }))}
+                className="input-base"
+                style={{ backgroundImage: 'none' }}>
+                {campusConfig.hostels.map(h => (
+                  <option key={h.id} value={h.name}
+                    style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Password */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label-cap mb-2 block">Password</label>
+                <div className="relative">
+                  <input type={showPwd ? 'text' : 'password'} required placeholder="8+ chars"
+                    value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                    className="input-base pr-9" />
+                  <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 btn-ghost p-0"
+                    style={{ color: 'var(--text-muted)' }}>
+                    {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="label-cap mb-2 block">Confirm</label>
+                <input type={showPwd ? 'text' : 'password'} required placeholder="Repeat"
+                  value={form.confirm} onChange={e => setForm(p => ({ ...p, confirm: e.target.value }))}
+                  className="input-base" />
+              </div>
+            </div>
+
+            {/* Password strength */}
+            {form.password && (
+              <div className="space-y-1">
+                <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+                  <div className="h-full rounded-full transition-all"
+                    style={{ width: `${pwdStrength.pct}%`, background: pwdStrength.color }} />
+                </div>
+                <span className="text-[10px] font-semibold stat-mono" style={{ color: pwdStrength.color }}>
+                  {pwdStrength.label}
+                </span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              
-              {/* Name */}
-              <div>
-                <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-1.5">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Arjun Sharma"
-                  value={form.name}
-                  onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
-                />
-              </div>
+            {/* Terms */}
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
+                className="mt-0.5 rounded" style={{ accentColor: 'var(--volt)' }} />
+              <span className="text-[11px] leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                I agree to the{' '}
+                <Link href="/community-guidelines" className="hover:underline" style={{ color: 'var(--signal)' }}>
+                  Fair Play Guidelines
+                </Link>
+                {' '}and Campus Sports Honor Code.
+              </span>
+            </label>
 
-              {/* Email with Verified Badge Preview */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-[#a0a0b8] uppercase tracking-wider">Campus / Personal Email</label>
-                  {isVerifiedAcademic && (
-                    <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                      <GraduationCap className="w-3 h-3" /> Verified Student
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="email"
-                  required
-                  placeholder="name.2026@vitstudent.ac.in or personal email"
-                  value={form.email}
-                  onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
-                />
-              </div>
+            <button type="submit" disabled={loading || !agreed}
+              className="btn-primary w-full py-3 text-sm font-bold">
+              {loading
+                ? <><span className="w-4 h-4 rounded-full border-2 border-[var(--ink)] border-t-transparent animate-spin" />Creating profile...</>
+                : 'Create Athlete Profile'}
+            </button>
+          </form>
 
-              {/* Hostel / Residence */}
-              <div>
-                <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-1.5">
-                  Hostel Block / Residence
-                </label>
-                <select
-                  value={form.hostel}
-                  onChange={e => setForm(prev => ({ ...prev, hostel: e.target.value }))}
-                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white focus:outline-none focus:border-[#CCFF00]"
-                >
-                  {campusConfig.hostels.map(h => (
-                    <option key={h.id} value={h.name} className="bg-[#0A0C10]">{h.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Password Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-1.5">Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPwd ? 'text' : 'password'}
-                      required
-                      placeholder="8+ characters"
-                      value={form.password}
-                      onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
-                      className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 pr-10 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPwd(!showPwd)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b6b80] hover:text-white"
-                    >
-                      {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#a0a0b8] uppercase tracking-wider mb-1.5">Confirm</label>
-                  <input
-                    type={showPwd ? 'text' : 'password'}
-                    required
-                    placeholder="Repeat password"
-                    value={form.confirm}
-                    onChange={e => setForm(prev => ({ ...prev, confirm: e.target.value }))}
-                    className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-xs text-white placeholder-[#555] focus:outline-none focus:border-[#CCFF00]"
-                  />
-                </div>
-              </div>
-
-              {/* Password Strength Indicator */}
-              {form.password && (
-                <div className="space-y-1">
-                  <div className="h-1 rounded-full bg-white/10 overflow-hidden">
-                    <div
-                      style={{ width: `${pwdStrength.pct}%`, background: pwdStrength.color }}
-                      className="h-full transition-all"
-                    />
-                  </div>
-                  <span className="text-[10px] font-mono font-bold" style={{ color: pwdStrength.color }}>
-                    Strength: {pwdStrength.label}
-                  </span>
-                </div>
-              )}
-
-              {/* Terms checkbox */}
-              <label className="flex items-start gap-2 pt-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={agreed}
-                  onChange={e => setAgreed(e.target.checked)}
-                  className="mt-0.5 rounded accent-[#CCFF00]"
-                />
-                <span className="text-[11px] text-[#a0a0b8] leading-tight">
-                  I agree to the Fair Play Guidelines and Campus Sports Honor Code.
-                </span>
-              </label>
-
-              <button
-                type="submit"
-                disabled={loading || !agreed}
-                className="btn-volt w-full flex items-center justify-center gap-2 py-3.5 mt-4"
-              >
-                {loading ? <span className="w-4 h-4 border-2 border-[#040507]/40 border-t-[#040507] rounded-full animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                Create Athlete Card (+100 🪙)
-              </button>
-            </form>
-
-            <p className="text-center text-xs text-[#6b6b80] mt-6">
-              Already have an account?{' '}
-              <Link href="/login" className="text-[#CCFF00] hover:underline font-bold">
-                Sign In
-              </Link>
-            </p>
-          </div>
+          <p className="text-sm text-center mt-6" style={{ color: 'var(--text-muted)' }}>
+            Already have an account?{' '}
+            <Link href="/login" className="font-semibold hover:underline" style={{ color: 'var(--volt)' }}>
+              Sign in
+            </Link>
+          </p>
         </motion.div>
       </div>
     </div>

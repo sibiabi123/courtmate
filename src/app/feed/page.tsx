@@ -42,8 +42,8 @@ function Avatar({ user, size = 'md' }: { user: any; size?: 'sm' | 'md' }) {
   }
   return (
     <div
-      className={`${s} rounded-xl flex items-center justify-center font-black text-[#040507] shrink-0 font-[family-name:var(--font-outfit)]`}
-      style={{ background: 'linear-gradient(135deg, #CCFF00, #00F0FF)' }}
+      className={`${s} rounded-xl flex items-center justify-center font-black shrink-0 font-[family-name:var(--font-display)]`}
+      style={{ background: 'var(--volt)', color: 'var(--ink)' }}
     >
       {initials}
     </div>
@@ -463,169 +463,149 @@ function PostCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2 }}
-      className={`rounded-2xl border p-5 transition-all relative overflow-hidden bg-[#0A0C10] ${
-        isUrgent
-          ? 'border-[#FF2A55]/50 shadow-[0_4px_30px_rgba(255,42,85,0.15)]'
-          : isFull
-          ? 'border-white/5 opacity-80'
-          : 'border-white/10 hover:border-[#CCFF00]/40'
+      className={`rounded-[var(--r-lg)] p-5 relative overflow-hidden transition-all ${
+        isUrgent && !isFull ? '' : ''
       }`}
+      style={{
+        background: 'var(--surface)',
+        border: `1px solid ${isUrgent && !isFull ? 'rgba(239,68,68,0.4)' : isFull ? 'var(--border-subtle)' : 'var(--border)'}`,
+        opacity: isFull ? 0.75 : 1,
+      }}
     >
-      {/* Host & Tier Header */}
-      <div className="flex items-center justify-between gap-3 mb-3">
+      {/* Left sport accent stripe */}
+      <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-[var(--r-lg)]"
+        style={{ background: isFull ? 'var(--border-hi)' : isUrgent ? 'var(--danger)' : 'var(--volt)' }} />
+
+      {/* Host & Tier */}
+      <div className="flex items-center justify-between gap-3 mb-3 pl-2">
         <div className="flex items-center gap-3 min-w-0">
           {post.user && <Avatar user={post.user} size="sm" />}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-white text-xs font-[family-name:var(--font-outfit)] truncate">
+              <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
                 {post.user?.name || 'Campus Athlete'}
               </span>
               {isOwner && (
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[#CCFF00]/15 text-[#CCFF00] font-bold font-mono">
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold stat-mono"
+                  style={{ background: 'var(--volt-dim)', color: 'var(--volt)', border: '1px solid var(--volt-border)' }}>
                   HOST
                 </span>
               )}
-              {/* Zero-Flake Reliability Karma Score */}
-              <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 font-bold font-mono flex items-center gap-0.5 border border-emerald-500/25">
-                <Shield className="w-2.5 h-2.5" /> 98% RELIABLE
-              </span>
             </div>
-            <p className="text-[10px] text-[#6b6b80]">{post.user?.hostel || 'Main Campus'}</p>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{post.user?.hostel || 'Main Campus'}</p>
           </div>
         </div>
-
-        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold font-mono shrink-0" style={{ background: tier.bg, color: tier.color }}>
+        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold stat-mono shrink-0"
+          style={{ background: tier.bg, color: tier.color }}>
           {tier.emoji} {tier.label}
         </span>
       </div>
 
-      {/* Sport & Venue Details */}
-      <div className="rounded-xl p-3.5 mb-3 bg-white/[0.02] border border-white/5">
+      {/* Sport & Venue */}
+      <div className="rounded-[var(--r-md)] p-3.5 mb-3 pl-5"
+        style={{ background: 'var(--surface-2)', border: '1px solid var(--border-subtle)' }}>
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <div className="flex items-center gap-2">
             <span className="text-xl">{sportEmoji}</span>
-            <h3 className="font-black text-white text-base font-[family-name:var(--font-outfit)]">
+            <h3 className="font-bold text-base" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
               {post.sport}
             </h3>
           </div>
           {isUrgent && !isFull && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FF2A55]/20 text-[#FF2A55] border border-[#FF2A55]/30 animate-pulse font-mono">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse stat-mono"
+              style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--danger)', border: '1px solid rgba(239,68,68,0.3)' }}>
               🔥 1 SPOT LEFT
             </span>
           )}
         </div>
-
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#a0a0b8]">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
           <span className="flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5 text-[#CCFF00]" />
+            <MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--volt)' }} />
             {post.ground}
           </span>
           {scheduledTime && (
-            <span className="flex items-center gap-1 font-mono text-[11px]">
-              <Clock className="w-3 h-3 text-[#00F0FF]" />
+            <span className="flex items-center gap-1 stat-mono">
+              <Clock className="w-3 h-3 shrink-0" style={{ color: 'var(--signal)' }} />
               {scheduledTime.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {scheduledTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
         </div>
-
         {post.description && (
-          <p className="text-xs text-[#a0a0b8] mt-2 pt-2 border-t border-white/5 leading-relaxed">
+          <p className="text-[12px] mt-2 pt-2 leading-relaxed" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)' }}>
             {post.description}
           </p>
         )}
       </div>
 
-      {/* Capacity Progress Bar */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between text-xs mb-1.5 font-mono">
-          <span className="text-[#6b6b80] flex items-center gap-1 text-[11px]">
-            <Users className="w-3 h-3" />
-            {post.currentPlayers}/{post.maxPlayers} ATHLETES
+      {/* Capacity bar */}
+      <div className="mb-4 pl-2">
+        <div className="flex items-center justify-between text-[11px] mb-1.5 stat-mono">
+          <span className="flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+            <Users className="w-3 h-3" /> {post.currentPlayers}/{post.maxPlayers}
           </span>
-          <span
-            className="font-bold text-[11px]"
-            style={{ color: isFull ? '#FF2A55' : spotsLeft <= 2 ? '#CCFF00' : '#00F0FF' }}
-          >
-            {isFull ? '🔴 MATCH FULL' : spotsLeft <= 2 ? `⚠️ ${spotsLeft} SPOTS LEFT` : `✅ ${spotsLeft} SPOTS OPEN`}
+          <span className="font-bold" style={{
+            color: isFull ? 'var(--danger)' : spotsLeft <= 2 ? 'var(--volt)' : 'var(--success)'
+          }}>
+            {isFull ? 'Full' : spotsLeft <= 2 ? `${spotsLeft} spots left` : `${spotsLeft} open`}
           </span>
         </div>
-        <div className="h-1.5 rounded-full overflow-hidden bg-white/5">
-          <div
-            style={{ width: `${pct}%`, background: isFull ? '#FF2A55' : 'linear-gradient(90deg, #CCFF00, #00F0FF)' }}
-            className="h-full rounded-full transition-all duration-300"
-          />
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+          <div className="h-full rounded-full transition-all duration-300"
+            style={{ width: `${pct}%`, background: isFull ? 'var(--danger)' : 'linear-gradient(90deg, var(--volt), var(--signal))' }} />
         </div>
       </div>
 
-      {/* Card Action Buttons */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={() => { playClick(); onViewPlayers(post); }}
-          className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-all"
-        >
-          <Eye className="w-3.5 h-3.5" />
-          <span>Squad ({post.currentPlayers})</span>
-        </button>
-
-        <button
-          onClick={() => { playClick(); onOpenChat(post); }}
-          className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl bg-[#CCFF00]/10 hover:bg-[#CCFF00]/20 text-[#CCFF00] border border-[#CCFF00]/25 transition-all"
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          <span>Lobby Chat</span>
-        </button>
-
-        {/* WhatsApp Lineup Card Generator */}
-        <button
-          onClick={() => { playClick(); if (onOpenWhatsApp) onOpenWhatsApp(post); else handleWhatsApp(); }}
-          className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 hover:bg-[#25D366]/20 transition-all"
-          title="Share formatted Lineup Card to WhatsApp"
-        >
-          <Share2 className="w-3.5 h-3.5" />
-          <span>WhatsApp Card</span>
-        </button>
-
-        {/* Zero-Flake Check-In Handshake Trigger (Active for joined players or hosts) */}
-        {(isOwner || joined) && onOpenCheckin && (
-          <button
-            onClick={() => { playClick(); onOpenCheckin(post); }}
-            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/35 hover:bg-[#00F0FF]/25 transition-all font-mono animate-pulse"
-          >
-            <span>🏃 Check-In</span>
-          </button>
-        )}
-
-        <div className="flex-1" />
-
+      {/* Action Row — 3 visible max */}
+      <div className="flex items-center gap-2 pl-2">
+        {/* Primary: Join / Status */}
         {isOwner ? (
-          <span className="text-xs font-bold text-[#CCFF00] px-3 py-1.5 rounded-xl font-mono bg-[#CCFF00]/10 border border-[#CCFF00]/30">
+          <span className="btn-ghost text-[12px] px-3 py-1.5 stat-mono" style={{ color: 'var(--volt)', background: 'var(--volt-dim)', border: '1px solid var(--volt-border)', borderRadius: 'var(--r-md)' }}>
             HOSTING
           </span>
         ) : joined ? (
-          <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 px-3 py-1.5 rounded-xl font-mono bg-emerald-500/10 border border-emerald-500/30">
+          <span className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 rounded-[var(--r-md)] stat-mono"
+            style={{ color: 'var(--success)', background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.25)' }}>
             <CheckCircle className="w-3.5 h-3.5" /> YOU&apos;RE IN
           </span>
         ) : !currentUser ? (
-          <a href="/login" className="btn-volt text-xs font-black px-4 py-1.5">
-            Sign In to Join
-          </a>
+          <a href="/login" className="btn-primary text-[12px] font-bold px-4 py-1.5">Sign in to Join</a>
         ) : (
-          <button
-            onClick={handleJoin}
-            disabled={joining || isFull}
-            className="btn-volt text-xs font-black px-4 py-1.5 disabled:opacity-50"
-          >
-            {joining ? 'Joining...' : isFull ? 'Lobby Full' : '⚡ Join Match'}
+          <button onClick={handleJoin} disabled={joining || isFull}
+            className="btn-primary text-[12px] font-bold px-4 py-1.5 disabled:opacity-40">
+            {joining ? 'Joining...' : isFull ? 'Full' : '⚡ Join'}
+          </button>
+        )}
+
+        {/* Secondary: Lobby Chat */}
+        <button onClick={() => { playClick(); onOpenChat(post); }}
+          className="btn-secondary text-[12px] px-3 py-1.5 flex items-center gap-1.5">
+          <MessageSquare className="w-3.5 h-3.5" /> Chat
+        </button>
+
+        {/* Overflow: Squad + WhatsApp + Check-in */}
+        <div className="flex-1" />
+        <button onClick={() => { playClick(); onViewPlayers(post); }}
+          className="btn-ghost text-[12px] px-2 py-1.5 flex items-center gap-1" title="View squad">
+          <Eye className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Squad</span>
+          <span>({post.currentPlayers})</span>
+        </button>
+        <button onClick={() => { playClick(); if (onOpenWhatsApp) onOpenWhatsApp(post); else handleWhatsApp(); }}
+          className="btn-ghost text-[12px] px-2 py-1.5" title="Share to WhatsApp">
+          <Share2 className="w-3.5 h-3.5" style={{ color: '#25D366' }} />
+        </button>
+        {(isOwner || joined) && onOpenCheckin && (
+          <button onClick={() => { playClick(); onOpenCheckin(post); }}
+            className="btn-ghost text-[12px] px-2 py-1.5" title="Check in for this match"
+            style={{ color: 'var(--signal)' }}>
+            <CheckCircle className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
-      {error && (
-        <p className="text-[11px] text-[#FF2A55] mt-2 font-mono">{error}</p>
-      )}
+      {error && <p className="text-[11px] mt-2 pl-2 stat-mono" style={{ color: 'var(--danger)' }}>{error}</p>}
     </motion.div>
   );
 }
@@ -669,13 +649,14 @@ export default function FeedPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#040507] pt-24 pb-28 px-4 text-white">
+    <main className="min-h-screen pt-24 pb-28 px-4" style={{ background: 'var(--void)', color: 'var(--text-primary)' }}>
       <div className="max-w-3xl mx-auto space-y-6">
 
         {/* Header Banner */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 mb-1.5 font-mono">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold mb-1.5 stat-mono"
+              style={{ background: 'var(--volt-dim)', color: 'var(--volt)', border: '1px solid var(--volt-border)' }}>
               <span>{campusConfig.emblem}</span> {campusConfig.shortName} Campus Sports
             </div>
             <h1 className="text-3xl font-black text-white font-[family-name:var(--font-outfit)]">
@@ -761,55 +742,33 @@ export default function FeedPage() {
           </div>
         )}
 
-        {/* Clean Primary Navigation Tabs: Matches front & center */}
-        <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto scrollbar-none">
-          <button
-            onClick={() => { playClick(); setActiveTab('matches'); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
-              activeTab === 'matches'
-                ? 'bg-[#CCFF00] text-[#040507] shadow-md shadow-[#CCFF00]/20 font-black'
-                : 'text-[#a0a0b8] hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5" />
-            <span>Active Matches ({posts.length})</span>
-          </button>
-
-          <button
-            onClick={() => { playClick(); setActiveTab('radar'); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
-              activeTab === 'radar'
-                ? 'bg-[#00F0FF] text-[#040507] shadow-md shadow-[#00F0FF]/20 font-black'
-                : 'text-[#a0a0b8] hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <MapPin className="w-3.5 h-3.5" />
-            <span>Court Status</span>
-          </button>
-
-          <button
-            onClick={() => { playClick(); setActiveTab('olympics'); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
-              activeTab === 'olympics'
-                ? 'bg-[#FFD700] text-[#040507] shadow-md shadow-[#FFD700]/20 font-black'
-                : 'text-[#a0a0b8] hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Trophy className="w-3.5 h-3.5" />
-            <span>Hostel Cup</span>
-          </button>
-
-          <button
-            onClick={() => { playClick(); setActiveTab('gear'); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
-              activeTab === 'gear'
-                ? 'bg-[#CCFF00] text-[#040507] shadow-md shadow-[#CCFF00]/20 font-black'
-                : 'text-[#a0a0b8] hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Package className="w-3.5 h-3.5" />
-            <span>Gear Locker</span>
-          </button>
+        {/* Tab Navigation — underline indicator style */}
+        <div className="flex items-center gap-0 overflow-x-auto scrollbar-none"
+          style={{ borderBottom: '1px solid var(--border)' }}>
+          {([
+            { id: 'matches', label: `Matches (${posts.length})`, icon: Zap },
+            { id: 'radar',   label: 'Court Status',              icon: MapPin },
+            { id: 'olympics',label: 'Hostel Cup',                icon: Trophy },
+            { id: 'gear',    label: 'Gear Locker',               icon: Package },
+          ] as const).map(tab => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.id;
+            return (
+              <button key={tab.id}
+                onClick={() => { playClick(); setActiveTab(tab.id); }}
+                className="relative flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-medium shrink-0 transition-colors"
+                style={{ color: active ? 'var(--volt)' : 'var(--text-muted)' }}>
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                {tab.label}
+                {active && (
+                  <motion.div layoutId="feed-tab-indicator"
+                    className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
+                    style={{ background: 'var(--volt)' }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }} />
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* TAB 1: MATCHES (Default) */}
@@ -818,18 +777,12 @@ export default function FeedPage() {
             {/* Sport Filter Chips */}
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
               {SPORTS.map(s => (
-                <button
-                  key={s}
-                  onClick={() => {
-                    playClick();
-                    setSport(s);
-                  }}
-                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    sport === s
-                      ? 'bg-[#CCFF00] text-[#040507] shadow-md shadow-[#CCFF00]/20 font-black'
-                      : 'bg-white/5 text-[#a0a0b8] hover:text-white border border-white/5'
-                  }`}
-                >
+                <button key={s}
+                  onClick={() => { playClick(); setSport(s); }}
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all"
+                  style={sport === s
+                    ? { background: 'var(--volt)', color: 'var(--ink)', fontWeight: 700 }
+                    : { background: 'var(--surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                   {SPORT_EMOJIS[s] || ''} {s}
                 </button>
               ))}

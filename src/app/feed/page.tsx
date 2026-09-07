@@ -5,13 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, X, Clock, Users, RefreshCw, Share2, Eye, CheckCircle, Zap, MapPin,
   ChevronDown, ChevronUp, Copy, Check, MessageSquare, Shield, AlertTriangle,
-  Flame, Package, Radio, Sparkles
+  Flame, Package, Radio, Sparkles, Trophy
 } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { LobbyChatDrawer } from '@/components/ui/LobbyChatDrawer';
 import { SOSFlareModal } from '@/components/features/SOSFlareModal';
 import { CourtCrowdRadar } from '@/components/features/CourtCrowdRadar';
 import { PeerGearLocker } from '@/components/features/PeerGearLocker';
+import { CommitmentHandshakeModal } from '@/components/features/CommitmentHandshakeModal';
+import { WhatsAppCardGenerator } from '@/components/features/WhatsAppCardGenerator';
+import { InterHostelCupWidget } from '@/components/features/InterHostelCupWidget';
 import { playClick, playSuccess, playDuel } from '@/lib/sound';
 import { getActiveCampusConfig } from '@/lib/campus-config';
 
@@ -396,11 +399,15 @@ function PostCard({
   onJoined,
   onViewPlayers,
   onOpenChat,
+  onOpenCheckin,
+  onOpenWhatsApp,
 }: {
   post: any;
   onJoined: () => void;
   onViewPlayers: (post: any) => void;
   onOpenChat: (post: any) => void;
+  onOpenCheckin?: (post: any) => void;
+  onOpenWhatsApp?: (post: any) => void;
 }) {
   const { currentUser } = useUIStore();
   const [joining, setJoining] = useState(false);
@@ -442,6 +449,10 @@ function PostCard({
   };
 
   const handleWhatsApp = () => {
+    if (onOpenWhatsApp) {
+      onOpenWhatsApp(post);
+      return;
+    }
     playClick();
     const url = `${window.location.origin}/feed?post=${post.id}`;
     const msg = encodeURIComponent(
@@ -477,6 +488,10 @@ function PostCard({
                   HOST
                 </span>
               )}
+              {/* Zero-Flake Reliability Karma Score */}
+              <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 font-bold font-mono flex items-center gap-0.5 border border-emerald-500/25">
+                <Shield className="w-2.5 h-2.5" /> 98% RELIABLE
+              </span>
             </div>
             <p className="text-[10px] text-[#6b6b80]">{post.user?.hostel || 'Main Campus'}</p>
           </div>
@@ -563,13 +578,25 @@ function PostCard({
           <span>Lobby Chat</span>
         </button>
 
+        {/* WhatsApp Lineup Card Generator */}
         <button
-          onClick={handleWhatsApp}
-          className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl bg-emerald-500/10 text-[#25D366] border border-[#25D366]/30 hover:bg-emerald-500/20 transition-all"
-          title="Share on WhatsApp"
+          onClick={() => { playClick(); if (onOpenWhatsApp) onOpenWhatsApp(post); else handleWhatsApp(); }}
+          className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 hover:bg-[#25D366]/20 transition-all"
+          title="Share formatted Lineup Card to WhatsApp"
         >
-          <span>Share</span>
+          <Share2 className="w-3.5 h-3.5" />
+          <span>WhatsApp Card</span>
         </button>
+
+        {/* Zero-Flake Check-In Handshake Trigger (Active for joined players or hosts) */}
+        {(isOwner || joined) && onOpenCheckin && (
+          <button
+            onClick={() => { playClick(); onOpenCheckin(post); }}
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-[#00F0FF]/15 text-[#00F0FF] border border-[#00F0FF]/35 hover:bg-[#00F0FF]/25 transition-all font-mono animate-pulse"
+          >
+            <span>🏃 Check-In</span>
+          </button>
+        )}
 
         <div className="flex-1" />
 
@@ -611,11 +638,13 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sport, setSport] = useState('All');
-  const [activeTab, setActiveTab] = useState<'matches' | 'radar' | 'gear'>('matches');
+  const [activeTab, setActiveTab] = useState<'matches' | 'radar' | 'olympics' | 'gear'>('matches');
   const [showCreate, setShowCreate] = useState(false);
   const [showSOS, setShowSOS] = useState(false);
   const [viewPost, setViewPost] = useState<any>(null);
   const [chatPost, setChatPost] = useState<any>(null);
+  const [checkinPost, setCheckinPost] = useState<any>(null);
+  const [whatsappPost, setWhatsappPost] = useState<any>(null);
   const [activeFlares, setActiveFlares] = useState<any[]>([]);
 
   const fetchPosts = useCallback(async () => {
@@ -733,10 +762,10 @@ export default function FeedPage() {
         )}
 
         {/* Clean Primary Navigation Tabs: Matches front & center */}
-        <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+        <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto scrollbar-none">
           <button
             onClick={() => { playClick(); setActiveTab('matches'); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
               activeTab === 'matches'
                 ? 'bg-[#CCFF00] text-[#040507] shadow-md shadow-[#CCFF00]/20 font-black'
                 : 'text-[#a0a0b8] hover:text-white hover:bg-white/5'
@@ -748,7 +777,7 @@ export default function FeedPage() {
 
           <button
             onClick={() => { playClick(); setActiveTab('radar'); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
               activeTab === 'radar'
                 ? 'bg-[#00F0FF] text-[#040507] shadow-md shadow-[#00F0FF]/20 font-black'
                 : 'text-[#a0a0b8] hover:text-white hover:bg-white/5'
@@ -759,8 +788,20 @@ export default function FeedPage() {
           </button>
 
           <button
+            onClick={() => { playClick(); setActiveTab('olympics'); }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              activeTab === 'olympics'
+                ? 'bg-[#FFD700] text-[#040507] shadow-md shadow-[#FFD700]/20 font-black'
+                : 'text-[#a0a0b8] hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            <span>Hostel Cup</span>
+          </button>
+
+          <button
             onClick={() => { playClick(); setActiveTab('gear'); }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
               activeTab === 'gear'
                 ? 'bg-[#CCFF00] text-[#040507] shadow-md shadow-[#CCFF00]/20 font-black'
                 : 'text-[#a0a0b8] hover:text-white hover:bg-white/5'
@@ -828,6 +869,8 @@ export default function FeedPage() {
                     onJoined={fetchPosts}
                     onViewPlayers={setViewPost}
                     onOpenChat={setChatPost}
+                    onOpenCheckin={setCheckinPost}
+                    onOpenWhatsApp={setWhatsappPost}
                   />
                 ))}
               </div>
@@ -842,7 +885,14 @@ export default function FeedPage() {
           </div>
         )}
 
-        {/* TAB 3: GEAR LOCKER */}
+        {/* TAB 3: INTER-HOSTEL CUP */}
+        {activeTab === 'olympics' && (
+          <div className="space-y-4">
+            <InterHostelCupWidget />
+          </div>
+        )}
+
+        {/* TAB 4: GEAR LOCKER */}
         {activeTab === 'gear' && (
           <div className="space-y-4">
             <PeerGearLocker />
@@ -866,6 +916,21 @@ export default function FeedPage() {
             />
           )}
           {viewPost && <ParticipantsModal post={viewPost} onClose={() => setViewPost(null)} />}
+          {checkinPost && (
+            <CommitmentHandshakeModal
+              isOpen={Boolean(checkinPost)}
+              post={checkinPost}
+              onClose={() => setCheckinPost(null)}
+              onStatusUpdated={fetchPosts}
+            />
+          )}
+          {whatsappPost && (
+            <WhatsAppCardGenerator
+              isOpen={Boolean(whatsappPost)}
+              post={whatsappPost}
+              onClose={() => setWhatsappPost(null)}
+            />
+          )}
         </AnimatePresence>
 
         {/* In-Lobby Chat Drawer */}

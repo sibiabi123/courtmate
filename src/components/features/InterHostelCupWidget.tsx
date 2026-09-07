@@ -1,35 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Award, Flame, Users, Shield, ArrowUpRight } from 'lucide-react';
+import { Trophy, Award, Flame, Users, Shield, ArrowUpRight, Loader2 } from 'lucide-react';
 import { playClick } from '@/lib/sound';
 
 interface HostelStanding {
   rank: number;
   hostel: string;
-  category: 'Men\'s' | 'Ladies\'' | 'Off-Campus';
+  category: "Men's" | "Ladies'" | 'Campus';
   points: number;
   matchesWon: number;
+  activeAthletes: number;
   topSport: string;
-  mvp: string;
 }
 
-const HOSTEL_STANDINGS: HostelStanding[] = [
-  { rank: 1, hostel: 'MH-Q Block', category: 'Men\'s', points: 3420, matchesWon: 148, topSport: 'Cricket & Football', mvp: 'Arjun Verma (1990 RP)' },
-  { rank: 2, hostel: 'MH-A Block', category: 'Men\'s', points: 3180, matchesWon: 135, topSport: 'Badminton', mvp: 'Karthik Raman (1940 RP)' },
-  { rank: 3, hostel: 'LH-B Block', category: 'Ladies\'', points: 2950, matchesWon: 122, topSport: 'Basketball & TT', mvp: 'Sneha Patel (1910 RP)' },
-  { rank: 4, hostel: 'MH-D Block', category: 'Men\'s', points: 2840, matchesWon: 118, topSport: 'Football 7v7', mvp: 'Rohan Sharma (1880 RP)' },
-  { rank: 5, hostel: 'LH-A Block', category: 'Ladies\'', points: 2710, matchesWon: 110, topSport: 'Badminton', mvp: 'Priya Iyer (1850 RP)' },
-  { rank: 6, hostel: 'MH-K Block', category: 'Men\'s', points: 2590, matchesWon: 104, topSport: 'Volleyball', mvp: 'Vikram Das (1820 RP)' },
-];
-
 export function InterHostelCupWidget() {
-  const [filter, setFilter] = useState<'All' | 'Men\'s' | 'Ladies\''>('All');
+  const [standings, setStandings] = useState<HostelStanding[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'All' | "Men's" | "Ladies'">('All');
+
+  useEffect(() => {
+    fetch('/api/hostel-standings')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.standings)) {
+          setStandings(data.standings);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = filter === 'All'
-    ? HOSTEL_STANDINGS
-    : HOSTEL_STANDINGS.filter(h => h.category === filter);
+    ? standings
+    : standings.filter(h => h.category === filter);
 
   return (
     <div className="rounded-3xl border border-white/10 bg-[#0A0C10] p-5 sm:p-6 shadow-xl relative overflow-hidden">
@@ -43,25 +48,25 @@ export function InterHostelCupWidget() {
             <h3 className="font-outfit font-black text-base text-white flex items-center gap-2">
               Inter-Hostel Athletic Cup
               <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#FFD700]/10 text-[#FFD700] font-bold border border-[#FFD700]/20">
-                2026 STANDINGS
+                LIVE OLYMPIC RADAR
               </span>
             </h3>
-            <p className="text-[10px] text-[#6b6b80]">Hostel supremacy points from verified match & duel wins</p>
+            <p className="text-[10px] text-[#6b6b80]">Hostel supremacy points calculated from active participation &amp; wins</p>
           </div>
         </div>
 
         {/* Filter buttons */}
         <div className="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/10 self-start sm:self-auto">
-          {['All', 'Men\'s', 'Ladies\''].map(f => (
+          {['All', "Men's", "Ladies'"].map(f => (
             <button
               key={f}
               onClick={() => {
                 playClick();
                 setFilter(f as any);
               }}
-              className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                 filter === f
-                  ? 'bg-[#CCFF00] text-[#040507] font-black'
+                  ? 'bg-[#FFD700] text-[#040507] font-black'
                   : 'text-[#a0a0b8] hover:text-white'
               }`}
             >
@@ -71,53 +76,70 @@ export function InterHostelCupWidget() {
         </div>
       </div>
 
-      {/* Standings Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="text-[10px] font-black uppercase text-[#6b6b80] tracking-wider border-b border-white/5 pb-2">
-              <th className="pb-2 pl-2">Rank</th>
-              <th className="pb-2">Hostel Residence</th>
-              <th className="pb-2">Olympic Points</th>
-              <th className="pb-2">Matches Won</th>
-              <th className="pb-2">Hostel MVP</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {filtered.map(h => (
-              <tr key={h.hostel} className="hover:bg-white/[0.02] transition-colors">
-                <td className="py-3 pl-2">
-                  <span
-                    className={`w-6 h-6 rounded-lg font-outfit font-black text-xs flex items-center justify-center ${
-                      h.rank === 1
-                        ? 'bg-[#FFD700] text-[#040507]'
-                        : h.rank === 2
-                        ? 'bg-[#00F0FF] text-[#040507]'
-                        : h.rank === 3
-                        ? 'bg-[#CCFF00] text-[#040507]'
-                        : 'bg-white/5 text-[#a0a0b8]'
-                    }`}
-                  >
-                    #{h.rank}
+      {loading ? (
+        <div className="py-12 text-center text-xs text-[#6b6b80]">
+          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#FFD700]" />
+          Calculating live hostel points...
+        </div>
+      ) : (
+        /* Standings Table */
+        <div className="space-y-2">
+          {filtered.slice(0, 8).map((h) => {
+            const isTop3 = h.rank <= 3;
+            const rankBg =
+              h.rank === 1 ? 'bg-[#FFD700] text-black font-black' :
+              h.rank === 2 ? 'bg-slate-300 text-black font-black' :
+              h.rank === 3 ? 'bg-amber-700 text-white font-black' :
+              'bg-white/5 text-[#a0a0b8]';
+
+            return (
+              <motion.div
+                key={h.hostel}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                  isTop3
+                    ? 'bg-white/[0.03] border-white/15 shadow-sm'
+                    : 'bg-white/[0.01] border-white/5 hover:border-white/10'
+                }`}
+              >
+                {/* Rank & Block Name */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs shrink-0 font-mono ${rankBg}`}>
+                    {h.rank === 1 ? '🥇' : h.rank === 2 ? '🥈' : h.rank === 3 ? '🥉' : `#${h.rank}`}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-xs text-white truncate font-outfit">{h.hostel}</span>
+                      <span className="text-[9px] font-mono text-[#6b6b80] px-1.5 py-0.2 rounded bg-white/5">
+                        {h.category}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[#a0a0b8] truncate font-mono">
+                      {h.activeAthletes} athletes · {h.topSport}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Score & Points */}
+                <div className="text-right shrink-0">
+                  <span className="font-black text-xs text-[#FFD700] font-mono block">
+                    {h.points.toLocaleString()} PTS
                   </span>
-                </td>
-                <td className="py-3 font-bold text-white">
-                  <div>{h.hostel}</div>
-                  <div className="text-[10px] text-[#6b6b80] font-normal">{h.topSport}</div>
-                </td>
-                <td className="py-3 font-mono font-black text-[#CCFF00]">
-                  {h.points.toLocaleString()} pts
-                </td>
-                <td className="py-3 font-mono text-emerald-400">
-                  {h.matchesWon} Wins
-                </td>
-                <td className="py-3 text-[11px] text-[#a0a0b8]">
-                  {h.mvp}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  <span className="text-[10px] text-[#6b6b80] font-mono">
+                    {h.matchesWon} wins
+                  </span>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Footer Info */}
+      <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] text-[#6b6b80]">
+        <span>Points update continuously with every confirmed match.</span>
+        <span className="font-bold text-white font-mono">Weekly Shield Award: Sunday 9:00 PM</span>
       </div>
     </div>
   );

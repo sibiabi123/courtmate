@@ -9,6 +9,7 @@ import {
 import { useUIStore } from '@/store/uiStore';
 import Link from 'next/link';
 import { sound } from '@/lib/sound';
+import { LiveBracketTree } from '@/components/tournaments/LiveBracketTree';
 
 const SPORTS = ['Cricket', 'Football', 'Badminton', 'Basketball', 'Table Tennis', 'Volleyball', 'Chess', 'Tennis'];
 const VENUES = ['Main Sports Arena', 'Indoor Badminton Complex', 'Center Court Complex', 'Basketball Center Court', 'Table Tennis Hall', 'Outdoor Multi-Courts'];
@@ -28,31 +29,6 @@ interface Tournament {
   format?: string;
 }
 
-// Sample interactive bracket nodes
-const BRACKET_ROUNDS = [
-  {
-    roundName: 'Quarterfinals',
-    matches: [
-      { id: 'm1', p1: 'Apex Warriors', s1: '21', p2: 'Neon Strikers', s2: '14', winner: 'Apex Warriors' },
-      { id: 'm2', p1: 'Thunder Titans', s1: '19', p2: 'Shadow Squad', s2: '21', winner: 'Shadow Squad' },
-      { id: 'm3', p1: 'Cyber Kings', s1: '21', p2: 'Vanguard FC', s2: '18', winner: 'Cyber Kings' },
-      { id: 'm4', p1: 'Solar Phoenix', s1: '16', p2: 'Alpha Wolves', s2: '21', winner: 'Alpha Wolves' },
-    ]
-  },
-  {
-    roundName: 'Semifinals',
-    matches: [
-      { id: 'm5', p1: 'Apex Warriors', s1: '21', p2: 'Shadow Squad', s2: '19', winner: 'Apex Warriors' },
-      { id: 'm6', p1: 'Cyber Kings', s1: '17', p2: 'Alpha Wolves', s2: '21', winner: 'Alpha Wolves' },
-    ]
-  },
-  {
-    roundName: 'Championship Final',
-    matches: [
-      { id: 'm7', p1: 'Apex Warriors', s1: '23', p2: 'Alpha Wolves', s2: '21', winner: 'Apex Warriors' },
-    ]
-  }
-];
 
 export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -280,6 +256,7 @@ export default function TournamentsPage() {
                     onClick={() => {
                       sound.playClick();
                       setActiveBracketTournament(t);
+                      document.getElementById('bracket-section')?.scrollIntoView({ behavior: 'smooth' });
                     }}
                     className="flex-1 py-3 rounded-xl font-bold text-xs text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-1.5"
                   >
@@ -301,50 +278,9 @@ export default function TournamentsPage() {
           </div>
         )}
 
-        {/* ── INTERACTIVE BRACKET PREVIEW SECTION ── */}
-        <div className="rounded-3xl border border-white/10 bg-[#111118]/80 p-8 shadow-2xl backdrop-blur-xl">
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl flex items-center justify-center bg-[#ffd60a]/20 border border-[#ffd60a]/40 text-[#ffd60a]">
-                <Trophy className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-outfit font-black text-xl text-white">
-                  Interactive Championship Bracket Tree
-                </h3>
-                <p className="text-xs text-[#a0a0b8]">Live knockout progression, score lines, and grand champions</p>
-              </div>
-            </div>
-            <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#00f5d4]/10 text-[#00f5d4] border border-[#00f5d4]/30">
-              Live Stage Simulation
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 overflow-x-auto pb-4">
-            {BRACKET_ROUNDS.map((round, rIdx) => (
-              <div key={round.roundName} className="space-y-4">
-                <div className="text-xs font-black uppercase tracking-wider text-[#ffd60a] border-b border-white/10 pb-2 flex items-center justify-between">
-                  <span>{round.roundName}</span>
-                  <span className="text-[10px] text-[#6b6b80]">Round {rIdx + 1}</span>
-                </div>
-
-                <div className="space-y-3">
-                  {round.matches.map((m) => (
-                    <div key={m.id} className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-[#00f5d4]/40 transition-all space-y-1.5">
-                      <div className={`flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl ${m.winner === m.p1 ? 'bg-[#00f5d4]/10 text-[#00f5d4] font-bold' : 'text-[#a0a0b8]'}`}>
-                        <span className="truncate max-w-[140px]">{m.p1}</span>
-                        <span className="font-mono">{m.s1}</span>
-                      </div>
-                      <div className={`flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl ${m.winner === m.p2 ? 'bg-[#00f5d4]/10 text-[#00f5d4] font-bold' : 'text-[#a0a0b8]'}`}>
-                        <span className="truncate max-w-[140px]">{m.p2}</span>
-                        <span className="font-mono">{m.s2}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* ── INTERACTIVE DYNAMIC BRACKET TREE WITH REFEREE MODE ── */}
+        <div id="bracket-section" className="rounded-3xl border border-white/10 bg-[#0A0C10] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+          <LiveBracketTree tournamentId={activeBracketTournament?.id || 'tourn-default-1'} />
         </div>
 
         {/* ── CREATE TOURNAMENT MODAL ── */}

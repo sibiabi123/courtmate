@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db-helper';
 import jwt from 'jsonwebtoken';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'courtmate-secret-2026';
 const COOKIE_NAME = 'courtmate-session';
 
@@ -41,17 +44,19 @@ export async function GET(req: NextRequest) {
     const sport = req.nextUrl.searchParams.get('sport');
     const db = await getDb();
     const nowIso = new Date().toISOString();
+    const nowMs = Date.now();
 
-    // ── Auto-delete expired match posts (where scheduled_at < now) ─────────────
+    // ── 1. Hard-delete expired posts from SQL Database ───────────────────────
     try {
       await db.execute(
-        `DELETE FROM posts WHERE (scheduled_at IS NOT NULL AND scheduled_at < ?) OR status = 'expired'`,
+        `DELETE FROM posts WHERE (scheduled_at IS NOT NULL AND scheduled_at != '' AND scheduled_at < ?) OR status = 'expired'`,
         [nowIso]
       );
     } catch (err) {
-      console.error('Error auto-deleting expired posts:', err);
+      console.error('Error auto-deleting expired posts in SQL:', err);
     }
 
+    // ── 2. Query remaining active match posts ─────────────────────────────────
     const rows = sport && sport !== 'All'
       ? await db.query(
           `SELECT p.*, u.name as user_name, u.avatar as user_avatar, u.hostel as user_hostel, u.glicko_rating as user_rating, u.coins as user_coins
@@ -67,17 +72,17 @@ export async function GET(req: NextRequest) {
            ORDER BY p.created_at DESC LIMIT 50`
         );
 
-    const nowMs = Date.now();
     const expiredIds: string[] = [];
 
+    // ── 3. Filter out past match dates in JS for 100% accuracy ────────────────
     const posts = (rows as any[])
       .filter((r: any) => {
-        if (!r.scheduled_at) return true;
-        const matchTime = new Date(r.scheduled_at).getTime();
-        if (isNaN(matchTime)) return true;
-        if (matchTime < nowMs) {
+        const rawTime = r.scheduled_at || r.scheduledAt || r.scheduled_start;
+        if (!rawTime) return true;
+        const matchTime = new Date(rawTime).getTime();
+        if (!isNaN(matchTime) && matchTime < nowMs) {
           expiredIds.push(r.id);
-          return false;
+          return false; // Remove past match post
         }
         return true;
       })
@@ -94,9 +99,10 @@ export async function GET(req: NextRequest) {
         responses: [],
       }));
 
+    // ── 4. Delete any leftover expired rows identified during JS filter ──────
     if (expiredIds.length > 0) {
       for (const expId of expiredIds) {
-        db.execute('DELETE FROM posts WHERE id = ?', [expId]).catch(() => {});
+        await db.execute('DELETE FROM posts WHERE id = ?', [expId]).catch(() => {});
       }
     }
 

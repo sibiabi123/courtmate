@@ -630,13 +630,14 @@ export default function FeedPage() {
   const fetchPosts = useCallback(async () => {
     try {
       const url = sport !== 'All' ? `/api/posts?sport=${encodeURIComponent(sport)}` : '/api/posts';
-      const res = await fetch(url);
+      const res = await fetch(url, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
       const data = await res.json();
       const rawPosts = Array.isArray(data.posts) ? data.posts : [];
       const now = Date.now();
       const validPosts = rawPosts.filter((p: any) => {
-        if (!p.scheduledStart) return true;
-        const matchTime = new Date(p.scheduledStart).getTime();
+        const rawTime = p.scheduledStart || p.scheduledAt || p.scheduled_at;
+        if (!rawTime) return true;
+        const matchTime = new Date(rawTime).getTime();
         return isNaN(matchTime) || matchTime > now;
       });
       setPosts(validPosts);

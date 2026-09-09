@@ -25,20 +25,21 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
   useEffect(() => {
     const fetch_ = async () => {
       try {
-        const res = await fetch('/api/admin/table?table=tournaments');
+        const res = await fetch(`/api/tournaments?id=${encodeURIComponent(id)}`, { cache: 'no-store' });
         const data = await res.json();
-        const t = (data.rows || []).find((r: any) => r.id === id);
-        setTournament(t || null);
-
-        if (t) {
-          const pRes = await fetch('/api/admin/table?table=tournament_participants');
-          const pData = await pRes.json();
-          const myParticipants = (pData.rows || []).filter((p: any) => p.tournament_id === id);
-          setParticipants(myParticipants);
-          if (currentUser) setJoined(myParticipants.some((p: any) => p.user_id === currentUser.id));
+        if (data.success && data.tournament) {
+          setTournament(data.tournament);
+          const pList = Array.isArray(data.participants) ? data.participants : [];
+          setParticipants(pList);
+          if (currentUser) setJoined(pList.some((p: any) => p.user_id === currentUser.id));
+        } else {
+          setTournament(null);
         }
-      } catch { }
-      setLoading(false);
+      } catch (err) {
+        console.error('Error fetching tournament:', err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetch_();
   }, [id, currentUser]);

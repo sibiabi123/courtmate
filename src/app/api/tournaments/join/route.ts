@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db-helper';
 import jwt from 'jsonwebtoken';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'courtmate-secret-2026';
 const COOKIE_NAME = 'courtmate-session';
 
@@ -32,6 +35,31 @@ export async function POST(req: NextRequest) {
       'INSERT INTO tournament_participants (id, tournament_id, user_id, joined_at) VALUES (?, ?, ?, ?)',
       [crypto.randomUUID(), tournamentId, payload.userId, new Date().toISOString()]
     );
+
+    // Auto-seed joining participant into open bracket slot
+    try {
+      const userRows = await db.query('SELECT name, hostel FROM users WHERE id = ?', [payload.userId]);
+      const userName = (userRows[0] as any)?.name || 'Participant';
+      const userHostel = (userRows[0] as any)?.hostel ? ` (${(userRows[0] as any).hostel})` : '';
+      const displayName = `${userName}${userHostel}`;
+
+      const bracketMatches = await db.query(
+        'SELECT * FROM tournament_brackets WHERE tournament_id = ? ORDER BY match_number ASC',
+        [tournamentId]
+      );
+
+      for (const bm of bracketMatches) {
+        if (bm.team1_name.startsWith('TBD') || bm.team1_name.startsWith('Seed')) {
+          await db.execute('UPDATE tournament_brackets SET team1_name = ? WHERE id = ?', [displayName, bm.id]);
+          break;
+        } else if (bm.team2_name.startsWith('TBD') || bm.team2_name.startsWith('Seed')) {
+          await db.execute('UPDATE tournament_brackets SET team2_name = ? WHERE id = ?', [displayName, bm.id]);
+          break;
+        }
+      }
+    } catch (seedErr) {
+      console.error('Error auto-seeding participant in bracket:', seedErr);
+    }
 
     return NextResponse.json({ success: true });
   } catch (e) {

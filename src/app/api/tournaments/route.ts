@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db-helper';
 import jwt from 'jsonwebtoken';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'courtmate-secret-2026';
 const COOKIE_NAME = 'courtmate-session';
 
@@ -9,8 +12,53 @@ export async function GET(req: NextRequest) {
   try {
     const sport = req.nextUrl.searchParams.get('sport');
     const status = req.nextUrl.searchParams.get('status');
+    const id = req.nextUrl.searchParams.get('id');
     const db = await getDb();
 
+    // Single tournament lookup by ID
+    if (id) {
+      const rows = await db.query(
+        `SELECT t.*, u.name as organizer_name,
+           (SELECT COUNT(*) FROM tournament_participants tp WHERE tp.tournament_id = t.id) as current_participants
+         FROM tournaments t
+         LEFT JOIN users u ON t.organizer_id = u.id
+         WHERE t.id = ?`,
+        [id]
+      );
+      const r = rows[0] as any;
+      if (!r) return NextResponse.json({ success: false, error: 'Tournament not found' }, { status: 404 });
+
+      const participants = await db.query(
+        `SELECT tp.*, u.name as user_name, u.avatar as user_avatar, u.hostel as user_hostel, u.glicko_rating as user_rating
+         FROM tournament_participants tp
+         JOIN users u ON tp.user_id = u.id
+         WHERE tp.tournament_id = ?
+         ORDER BY tp.joined_at ASC`,
+        [id]
+      );
+
+      return NextResponse.json({
+        success: true,
+        tournament: {
+          id: r.id,
+          name: r.name,
+          sport: r.sport,
+          venue: r.venue || 'Sports Arena',
+          start_date: r.scheduled_at,
+          scheduled_at: r.scheduled_at,
+          max_participants: Number(r.max_participants) || 16,
+          current_participants: Number(r.current_participants) || participants.length,
+          prize: Number(r.prize) || 0,
+          status: r.status,
+          description: r.description,
+          organizer_id: r.organizer_id,
+          organizerName: r.organizer_name,
+        },
+        participants,
+      });
+    }
+
+    // List all tournaments with filtering
     let sql = `
       SELECT t.*, u.name as organizer_name,
         (SELECT COUNT(*) FROM tournament_participants tp WHERE tp.tournament_id = t.id) as current_participants
@@ -43,6 +91,7 @@ export async function GET(req: NextRequest) {
       prize: Number(r.prize) || 0,
       status: r.status,
       description: r.description,
+      organizer_id: r.organizer_id,
       organizerName: r.organizer_name,
     }));
 

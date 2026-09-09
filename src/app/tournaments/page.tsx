@@ -154,6 +154,26 @@ export default function TournamentsPage() {
           </div>
         </div>
 
+        {/* Sport Filter Chips */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none mb-3">
+          {['All', ...SPORTS].map(s => (
+            <button
+              key={s}
+              onClick={() => {
+                sound.playClick();
+                setSelectedSport(s);
+              }}
+              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                selectedSport === s
+                  ? 'bg-[#00f5d4] text-[#0a0a0f] shadow-lg shadow-[#00f5d4]/20 font-black'
+                  : 'bg-white/5 text-[#a0a0b8] border border-white/5 hover:text-white'
+              }`}
+            >
+              <span>{SPORT_EMOJIS[s] || '🏆'}</span> {s}
+            </button>
+          ))}
+        </div>
+
         {/* Status Filter Tabs */}
         <div className="flex items-center gap-2 border-b border-white/10 pb-4 mb-6 overflow-x-auto scrollbar-none">
           {[
@@ -168,7 +188,7 @@ export default function TournamentsPage() {
                 sound.playClick();
                 setFilterStatus(tab.id as any);
               }}
-              className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shrink-0 ${
+              className={`px-5 py-2 rounded-2xl text-xs font-bold transition-all shrink-0 ${
                 filterStatus === tab.id
                   ? 'bg-white/10 text-[#ffd60a] border border-[#ffd60a]/40 shadow-lg shadow-[#ffd60a]/5'
                   : 'text-[#6b6b80] hover:text-white hover:bg-white/5'
@@ -223,9 +243,11 @@ export default function TournamentsPage() {
                     </span>
                   </div>
 
-                  <h3 className="font-outfit font-black text-white text-lg mb-2 group-hover:text-[#00f5d4] transition-colors line-clamp-2">
-                    {t.name}
-                  </h3>
+                  <Link href={`/tournaments/${t.id}`}>
+                    <h3 className="font-outfit font-black text-white text-lg mb-2 group-hover:text-[#00f5d4] transition-colors line-clamp-2">
+                      {t.name}
+                    </h3>
+                  </Link>
 
                   {t.description && (
                     <p className="text-xs text-[#a0a0b8] line-clamp-2 mb-4 leading-relaxed">
@@ -260,18 +282,16 @@ export default function TournamentsPage() {
                     }}
                     className="flex-1 py-3 rounded-xl font-bold text-xs text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-1.5"
                   >
-                    <Zap className="w-3.5 h-3.5 text-[#ffd60a]" /> View Bracket
+                    <Zap className="w-3.5 h-3.5 text-[#ffd60a]" /> Bracket
                   </button>
 
-                  {t.status === 'upcoming' && (
-                    <button
-                      onClick={() => handleJoin(t.id)}
-                      className="flex-1 py-3 rounded-xl font-bold text-xs text-white shadow-lg transition-all hover:scale-105"
-                      style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}
-                    >
-                      Join Tournament
-                    </button>
-                  )}
+                  <Link
+                    href={`/tournaments/${t.id}`}
+                    className="flex-1 py-3 rounded-xl font-bold text-xs text-center text-white shadow-lg transition-all hover:scale-105"
+                    style={{ background: 'linear-gradient(135deg, #7b2ff7, #00f5d4)' }}
+                  >
+                    Details →
+                  </Link>
                 </div>
               </motion.div>
             ))}
@@ -280,7 +300,7 @@ export default function TournamentsPage() {
 
         {/* ── INTERACTIVE DYNAMIC BRACKET TREE WITH REFEREE MODE ── */}
         <div id="bracket-section" className="rounded-3xl border border-white/10 bg-[#0A0C10] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-          <LiveBracketTree tournamentId={activeBracketTournament?.id || 'tourn-default-1'} />
+          <LiveBracketTree tournamentId={activeBracketTournament?.id || tournaments[0]?.id || 'tourn-default-1'} tournament={activeBracketTournament || tournaments[0]} />
         </div>
 
         {/* ── CREATE TOURNAMENT MODAL ── */}

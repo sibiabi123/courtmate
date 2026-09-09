@@ -27,9 +27,10 @@ interface BracketMatch {
 
 interface LiveBracketTreeProps {
   tournamentId?: string;
+  tournament?: any;
 }
 
-export function LiveBracketTree({ tournamentId = 'tourn-default-1' }: LiveBracketTreeProps) {
+export function LiveBracketTree({ tournamentId = 'tourn-default-1', tournament }: LiveBracketTreeProps) {
   const [matches, setMatches] = useState<BracketMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeScoringMatch, setActiveScoringMatch] = useState<BracketMatch | null>(null);
@@ -38,7 +39,7 @@ export function LiveBracketTree({ tournamentId = 'tourn-default-1' }: LiveBracke
 
   const fetchBracket = async () => {
     try {
-      const res = await fetch(`/api/tournaments/bracket?tournamentId=${tournamentId}`);
+      const res = await fetch(`/api/tournaments/bracket?tournamentId=${tournamentId}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.success && Array.isArray(data.matches)) {
         setMatches(data.matches);
@@ -72,13 +73,13 @@ export function LiveBracketTree({ tournamentId = 'tourn-default-1' }: LiveBracke
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
           <h3 className="font-outfit font-black text-xl text-white flex items-center gap-2 flex-wrap">
-            Dynamic Championship Bracket
+            {tournament?.name ? `${tournament.name}` : 'Dynamic Championship Bracket'}
             <span className="text-[9px] font-mono px-2.5 py-0.5 rounded-full bg-[#CCFF00]/10 text-[#CCFF00] font-bold border border-[#CCFF00]/20">
-              DUAL-CAPTAIN VERIFIED
+              {tournament?.sport ? `${tournament.sport.toUpperCase()} BRACKET` : 'DUAL-CAPTAIN VERIFIED'}
             </span>
           </h3>
           <p className="text-xs text-[#a0a0b8] mt-0.5">
-            Click any match to score, or tap <strong>Customize</strong> to edit teams, seeds &amp; venues
+            {tournament?.venue ? `📍 ${tournament.venue} · ` : ''}Click any match to score, or tap <strong>Customize</strong> to edit teams, seeds &amp; venues
           </p>
         </div>
 

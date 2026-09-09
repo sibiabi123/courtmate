@@ -9,15 +9,16 @@ export async function GET(req: NextRequest) {
     let autoConfirmedDuels = 0;
     let cleanedNotifications = 0;
 
-    // 1. Auto-expire open match lobbies older than 3 hours
+    // 1. Auto-delete open match lobbies that have passed scheduled time/date
     try {
-      // In posts, check status='open' or status='active'
       const checkPosts = await db.query(
-        `SELECT id FROM posts WHERE status = 'open' AND (scheduled_at < datetime('now', '-3 hours') OR date < date('now', '-1 day'))`
+        `SELECT id FROM posts WHERE (scheduled_at IS NOT NULL AND scheduled_at < ?) OR status = 'expired'`,
+        [now]
       );
       if (checkPosts.length > 0) {
         await db.execute(
-          `UPDATE posts SET status = 'expired' WHERE status = 'open' AND (scheduled_at < datetime('now', '-3 hours') OR date < date('now', '-1 day'))`
+          `DELETE FROM posts WHERE (scheduled_at IS NOT NULL AND scheduled_at < ?) OR status = 'expired'`,
+          [now]
         );
         expiredLobbies = checkPosts.length;
       }

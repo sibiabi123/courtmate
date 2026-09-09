@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eq, desc, and, ne } from 'drizzle-orm';
+import { eq, desc, and, ne, lt } from 'drizzle-orm';
 import { router, publicProcedure, protectedProcedure, ok, fail } from '../trpc';
 import { posts, postParticipants, users } from '../db/schema';
 
@@ -56,6 +56,12 @@ export const postRouter = router({
     }))
     .query(async ({ ctx, input }) => {
       try {
+        const nowIso = new Date().toISOString();
+        // Auto-delete expired posts
+        try {
+          ctx.db.delete(posts).where(lt(posts.scheduledAt, nowIso)).run();
+        } catch {}
+
         const conditions = [];
         if (input.sport) conditions.push(eq(posts.sport, input.sport));
         if (input.ground) conditions.push(eq(posts.ground, input.ground));

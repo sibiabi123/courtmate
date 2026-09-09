@@ -17,6 +17,13 @@ export async function POST(req: NextRequest) {
     const posts = await db.query('SELECT * FROM posts WHERE id = ?', [postId]);
     const post = posts[0] as any;
     if (!post) return NextResponse.json({ success: false, error: 'Post not found' }, { status: 404 });
+
+    // Check if match post has passed its scheduled date/time
+    if (post.scheduled_at && new Date(post.scheduled_at).getTime() < Date.now()) {
+      await db.execute('DELETE FROM posts WHERE id = ?', [postId]);
+      return NextResponse.json({ success: false, error: 'Match post has expired and was automatically removed.' }, { status: 400 });
+    }
+
     if (post.user_id === payload.userId) return NextResponse.json({ success: false, error: 'Cannot join your own post' }, { status: 400 });
     if (post.current_players >= post.max_players) return NextResponse.json({ success: false, error: 'Match is full' }, { status: 400 });
 

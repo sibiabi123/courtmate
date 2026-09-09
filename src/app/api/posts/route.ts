@@ -40,6 +40,17 @@ export async function GET(req: NextRequest) {
   try {
     const sport = req.nextUrl.searchParams.get('sport');
     const db = await getDb();
+    const nowIso = new Date().toISOString();
+
+    // ── Auto-delete expired match posts (where scheduled_at < now) ─────────────
+    try {
+      await db.execute(
+        `DELETE FROM posts WHERE (scheduled_at IS NOT NULL AND scheduled_at < ?) OR status = 'expired'`,
+        [nowIso]
+      );
+    } catch (err) {
+      console.error('Error auto-deleting expired posts:', err);
+    }
 
     const rows = sport && sport !== 'All'
       ? await db.query(
@@ -56,18 +67,38 @@ export async function GET(req: NextRequest) {
            ORDER BY p.created_at DESC LIMIT 50`
         );
 
-    const posts = (rows as any[]).map((r: any) => ({
-      id: r.id, userId: r.user_id, sport: r.sport, ground: r.ground,
-      maxPlayers: Number(r.max_players), currentPlayers: Number(r.current_players),
-      scheduledStart: r.scheduled_at, scheduledAt: r.scheduled_at,
-      status: r.status, description: r.description, createdAt: r.created_at,
-      user: r.user_name ? {
-        id: r.user_id, name: r.user_name, avatar: r.user_avatar,
-        hostel: r.user_hostel, glickoRating: Number(r.user_rating) || 1500,
-        coins: Number(r.user_coins) || 0,
-      } : null,
-      responses: [],
-    }));
+    const nowMs = Date.now();
+    const expiredIds: string[] = [];
+
+    const posts = (rows as any[])
+      .filter((r: any) => {
+        if (!r.scheduled_at) return true;
+        const matchTime = new Date(r.scheduled_at).getTime();
+        if (isNaN(matchTime)) return true;
+        if (matchTime < nowMs) {
+          expiredIds.push(r.id);
+          return false;
+        }
+        return true;
+      })
+      .map((r: any) => ({
+        id: r.id, userId: r.user_id, sport: r.sport, ground: r.ground,
+        maxPlayers: Number(r.max_players), currentPlayers: Number(r.current_players),
+        scheduledStart: r.scheduled_at, scheduledAt: r.scheduled_at,
+        status: r.status, description: r.description, createdAt: r.created_at,
+        user: r.user_name ? {
+          id: r.user_id, name: r.user_name, avatar: r.user_avatar,
+          hostel: r.user_hostel, glickoRating: Number(r.user_rating) || 1500,
+          coins: Number(r.user_coins) || 0,
+        } : null,
+        responses: [],
+      }));
+
+    if (expiredIds.length > 0) {
+      for (const expId of expiredIds) {
+        db.execute('DELETE FROM posts WHERE id = ?', [expId]).catch(() => {});
+      }
+    }
 
     return NextResponse.json({ success: true, posts });
   } catch (e) {

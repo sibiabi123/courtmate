@@ -632,7 +632,14 @@ export default function FeedPage() {
       const url = sport !== 'All' ? `/api/posts?sport=${encodeURIComponent(sport)}` : '/api/posts';
       const res = await fetch(url);
       const data = await res.json();
-      setPosts(Array.isArray(data.posts) ? data.posts : []);
+      const rawPosts = Array.isArray(data.posts) ? data.posts : [];
+      const now = Date.now();
+      const validPosts = rawPosts.filter((p: any) => {
+        if (!p.scheduledStart) return true;
+        const matchTime = new Date(p.scheduledStart).getTime();
+        return isNaN(matchTime) || matchTime > now;
+      });
+      setPosts(validPosts);
     } catch {
       setPosts([]);
     } finally {
@@ -642,6 +649,11 @@ export default function FeedPage() {
 
   useEffect(() => {
     fetchPosts();
+    // Auto-refresh match feed every 30s to prune expired posts dynamically
+    const timer = setInterval(() => {
+      fetchPosts();
+    }, 30000);
+    return () => clearInterval(timer);
   }, [fetchPosts]);
 
   const handleBroadcastFlare = (flare: any) => {

@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Clock, MapPin, Shield, Edit3, CheckCircle, Loader2 } from 'lucide-react';
+import { Trophy, Clock, MapPin, Shield, Edit3, CheckCircle, Loader2, Settings, Sparkles, Plus } from 'lucide-react';
 import { playClick } from '@/lib/sound';
 import { MobileRefereeScoreboard } from '@/components/tournaments/MobileRefereeScoreboard';
+import { CustomizeMatchModal } from '@/components/tournaments/CustomizeMatchModal';
+import { CustomizeBracketModal } from '@/components/tournaments/CustomizeBracketModal';
 
 interface BracketMatch {
   id: string;
@@ -31,6 +33,8 @@ export function LiveBracketTree({ tournamentId = 'tourn-default-1' }: LiveBracke
   const [matches, setMatches] = useState<BracketMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeScoringMatch, setActiveScoringMatch] = useState<BracketMatch | null>(null);
+  const [customizeMatch, setCustomizeMatch] = useState<BracketMatch | null>(null);
+  const [showBracketSettings, setShowBracketSettings] = useState(false);
 
   const fetchBracket = async () => {
     try {
@@ -58,29 +62,43 @@ export function LiveBracketTree({ tournamentId = 'tourn-default-1' }: LiveBracke
     );
   }
 
-  // Group matches by round name
-  const rounds = ['Quarterfinals', 'Semifinals', 'Championship Final'];
+  // Extract unique round names from matches dynamically
+  const uniqueRounds = Array.from(new Set(matches.map(m => m.round_name)));
+  const rounds = uniqueRounds.length > 0 ? uniqueRounds : ['Quarterfinals', 'Semifinals', 'Championship Final'];
 
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <h3 className="font-outfit font-black text-lg text-white flex items-center gap-2">
-            Dynamic Tournament Bracket
-            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#CCFF00]/10 text-[#CCFF00] font-bold border border-[#CCFF00]/20">
+          <h3 className="font-outfit font-black text-xl text-white flex items-center gap-2 flex-wrap">
+            Dynamic Championship Bracket
+            <span className="text-[9px] font-mono px-2.5 py-0.5 rounded-full bg-[#CCFF00]/10 text-[#CCFF00] font-bold border border-[#CCFF00]/20">
               DUAL-CAPTAIN VERIFIED
             </span>
           </h3>
-          <p className="text-xs text-[#6b6b80]">
-            Tap on any match to view live score or enter Mobile Referee Mode
+          <p className="text-xs text-[#a0a0b8] mt-0.5">
+            Click any match to score, or tap <strong>Customize</strong> to edit teams, seeds &amp; venues
           </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              playClick();
+              setShowBracketSettings(true);
+            }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white/15 border border-white/15 transition-all shadow-md"
+          >
+            <Settings className="w-3.5 h-3.5 text-[#00F0FF]" />
+            <span>Customize Bracket</span>
+          </button>
         </div>
       </div>
 
       {/* Bracket Tree Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 overflow-x-auto pb-4">
-        {rounds.map((roundName, roundIdx) => {
+      <div className={`grid grid-cols-1 md:grid-cols-${Math.min(4, rounds.length)} gap-6 overflow-x-auto pb-4`}>
+        {rounds.map((roundName) => {
           const roundMatches = matches.filter(m => m.round_name === roundName);
           return (
             <div key={roundName} className="space-y-4">
@@ -105,84 +123,118 @@ export function LiveBracketTree({ tournamentId = 'tourn-default-1' }: LiveBracke
                   return (
                     <div
                       key={m.id}
-                      onClick={() => {
-                        playClick();
-                        setActiveScoringMatch(m);
-                      }}
-                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer group hover:scale-[1.02] ${
+                      className={`p-3.5 rounded-2xl border transition-all group relative ${
                         isLive
                           ? 'bg-[#0A0C10] border-[#00F0FF]/40 shadow-lg shadow-[#00F0FF]/10'
                           : isCompleted
                           ? 'bg-[#0A0C10] border-white/10 hover:border-[#CCFF00]/30'
-                          : 'bg-[#0A0C10] border-white/5 opacity-85'
+                          : 'bg-[#0A0C10] border-white/5 opacity-90'
                       }`}
                     >
                       {/* Match Meta Header */}
                       <div className="flex items-center justify-between text-[10px] font-mono text-[#6b6b80] mb-2 pb-1.5 border-b border-white/5">
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-[#CCFF00]" /> {m.court_venue}
+                        <span className="flex items-center gap-1 truncate max-w-[120px]">
+                          <MapPin className="w-3 h-3 text-[#CCFF00] shrink-0" /> {m.court_venue || 'Court TBD'}
                         </span>
-                        {isLive ? (
-                          <span className="text-[#00F0FF] font-black animate-pulse flex items-center gap-1">
-                            ● LIVE NOW
+                        
+                        <div className="flex items-center gap-2">
+                          {isLive ? (
+                            <span className="text-[#00F0FF] font-black animate-pulse flex items-center gap-1">
+                              ● LIVE NOW
+                            </span>
+                          ) : isCompleted ? (
+                            <span className="text-emerald-400 font-bold flex items-center gap-1">
+                              ✓ FINAL
+                            </span>
+                          ) : (
+                            <span className="text-[#a0a0b8]">{m.scheduled_time || 'TBD'}</span>
+                          )}
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              playClick();
+                              setCustomizeMatch(m);
+                            }}
+                            className="p-1 rounded-lg bg-white/5 hover:bg-white/15 text-[#00F0FF] transition-all"
+                            title="Edit / Customize Match"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Match Content (Click to Score) */}
+                      <div
+                        onClick={() => {
+                          playClick();
+                          setActiveScoringMatch(m);
+                        }}
+                        className="cursor-pointer space-y-1.5"
+                      >
+                        {/* Team 1 */}
+                        <div className="flex items-center justify-between py-1">
+                          <span
+                            className={`text-xs font-bold truncate max-w-[150px] ${
+                              isW1 ? 'text-[#CCFF00] font-black' : 'text-white'
+                            }`}
+                          >
+                            {isW1 && '🏆 '}
+                            {m.team1_name}
                           </span>
-                        ) : isCompleted ? (
-                          <span className="text-emerald-400 font-bold flex items-center gap-1">
-                            ✓ FINAL
+                          <span
+                            className={`font-mono text-xs px-2 py-0.5 rounded ${
+                              isW1
+                                ? 'bg-[#CCFF00] text-black font-black'
+                                : 'bg-white/5 text-white'
+                            }`}
+                          >
+                            {m.score1}
                           </span>
-                        ) : (
-                          <span className="text-[#a0a0b8]">{m.scheduled_time}</span>
-                        )}
+                        </div>
+
+                        {/* Team 2 */}
+                        <div className="flex items-center justify-between py-1">
+                          <span
+                            className={`text-xs font-bold truncate max-w-[150px] ${
+                              isW2 ? 'text-[#00F0FF] font-black' : 'text-white'
+                            }`}
+                          >
+                            {isW2 && '🏆 '}
+                            {m.team2_name}
+                          </span>
+                          <span
+                            className={`font-mono text-xs px-2 py-0.5 rounded ${
+                              isW2
+                                ? 'bg-[#00F0FF] text-black font-black'
+                                : 'bg-white/5 text-white'
+                            }`}
+                          >
+                            {m.score2}
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Team 1 */}
-                      <div className="flex items-center justify-between py-1">
-                        <span
-                          className={`text-xs font-bold truncate max-w-[150px] ${
-                            isW1 ? 'text-[#CCFF00] font-black' : 'text-white'
-                          }`}
+                      {/* Tap to Score / Edit Action Bar */}
+                      <div className="mt-2.5 pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+                        <button
+                          onClick={() => {
+                            playClick();
+                            setActiveScoringMatch(m);
+                          }}
+                          className="text-[#a0a0b8] hover:text-white font-semibold flex items-center gap-1"
                         >
-                          {isW1 && '🏆 '}
-                          {m.team1_name}
-                        </span>
-                        <span
-                          className={`font-mono text-xs px-2 py-0.5 rounded ${
-                            isW1
-                              ? 'bg-[#CCFF00] text-black font-black'
-                              : 'bg-white/5 text-white'
-                          }`}
+                          <Trophy className="w-3 h-3 text-[#ffd60a]" /> Score / Referee Mode
+                        </button>
+                        <button
+                          onClick={() => {
+                            playClick();
+                            setCustomizeMatch(m);
+                          }}
+                          className="text-[#00F0FF] font-bold hover:underline flex items-center gap-1"
                         >
-                          {m.score1}
-                        </span>
-                      </div>
-
-                      {/* Team 2 */}
-                      <div className="flex items-center justify-between py-1">
-                        <span
-                          className={`text-xs font-bold truncate max-w-[150px] ${
-                            isW2 ? 'text-[#00F0FF] font-black' : 'text-white'
-                          }`}
-                        >
-                          {isW2 && '🏆 '}
-                          {m.team2_name}
-                        </span>
-                        <span
-                          className={`font-mono text-xs px-2 py-0.5 rounded ${
-                            isW2
-                              ? 'bg-[#00F0FF] text-black font-black'
-                              : 'bg-white/5 text-white'
-                          }`}
-                        >
-                          {m.score2}
-                        </span>
-                      </div>
-
-                      {/* Tap to Score / Verify Prompt */}
-                      <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[9px] text-[#6b6b80] group-hover:text-white transition-colors">
-                        <span>Referee &amp; Captains</span>
-                        <span className="text-[#CCFF00] font-bold flex items-center gap-1">
-                          <Edit3 className="w-3 h-3" /> Tap to Score
-                        </span>
+                          <Edit3 className="w-3 h-3" /> Customize
+                        </button>
                       </div>
                     </div>
                   );
@@ -206,6 +258,35 @@ export function LiveBracketTree({ tournamentId = 'tourn-default-1' }: LiveBracke
           />
         )}
       </AnimatePresence>
+
+      {/* Customize Single Match Modal */}
+      <AnimatePresence>
+        {customizeMatch && (
+          <CustomizeMatchModal
+            isOpen={Boolean(customizeMatch)}
+            match={customizeMatch}
+            onClose={() => setCustomizeMatch(null)}
+            onUpdated={() => {
+              fetchBracket();
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Customize Entire Bracket Layout Modal */}
+      <AnimatePresence>
+        {showBracketSettings && (
+          <CustomizeBracketModal
+            isOpen={showBracketSettings}
+            tournamentId={tournamentId}
+            onClose={() => setShowBracketSettings(false)}
+            onGenerated={() => {
+              fetchBracket();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Trophy, MapPin, Calendar, Users, Coins, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useUIStore } from '@/store/uiStore';
+import { LiveBracketTree } from '@/components/tournaments/LiveBracketTree';
 
 const SPORT_EMOJIS: Record<string, string> = {
   Cricket: '🏏', Football: '⚽', Badminton: '🏸', Basketball: '🏀',
@@ -164,7 +165,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
         </motion.div>
 
         {/* Tournament Info Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           {[
             { label: 'Sport', value: tournament.sport, icon: SPORT_EMOJIS[tournament.sport] || '🏆' },
             { label: 'Format', value: 'Single Elimination', icon: '🗂️' },
@@ -177,6 +178,11 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
               <div className="text-sm font-bold text-white font-outfit mt-0.5">{item.value}</div>
             </div>
           ))}
+        </div>
+
+        {/* ── INTERACTIVE CUSTOMIZABLE TOURNAMENT BRACKET ── */}
+        <div className="rounded-3xl border border-white/10 bg-[#0A0C10] p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+          <LiveBracketTree tournamentId={id} />
         </div>
       </div>
     </main>
